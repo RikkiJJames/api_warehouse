@@ -18,9 +18,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# entries are "context:dockerfile:name" — dbt builds from the repo root
+# since its Dockerfile needs the shared root pyproject.toml/uv.lock
 ALL_IMAGES=(
-  "dbt:dbt"
-  "airflow:airflow"
+  "airflow:airflow/Dockerfile:airflow"
+  ".:dbt/Dockerfile:dbt"
 )
 
 SELECTED=()
@@ -39,12 +41,11 @@ fi
 docker login
 
 for entry in "${SELECTED[@]}"; do
-  context="${entry%%:*}"
-  name="${entry##*:}"
+  IFS=':' read -r context dockerfile name <<< "$entry"
   full_image="$DOCKERHUB_USER/api-warehouse-$name:$TAG"
 
-  echo "==> Building $full_image from ./$context"
-  docker build -t "$full_image" "./$context"
+  echo "==> Building $full_image from $context (Dockerfile: $dockerfile)"
+  docker build -t "$full_image" -f "$dockerfile" "$context"
 
   echo "==> Pushing $full_image"
   docker push "$full_image"

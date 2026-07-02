@@ -12,7 +12,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen
 
 # copy dbt project
-COPY dbt .
+COPY dbt/dbt .
 
 ENV PATH="/usr/app/.venv/bin:$PATH"
 
