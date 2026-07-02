@@ -1,8 +1,8 @@
-  GNU nano 4.8                                 dags/spotify_ingestion.py
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from datetime import datetime, timedelta
 from airflow.hooks.base import BaseHook
+from airflow.models import Variable
 
 conn = BaseHook.get_connection("neondb")
 
@@ -15,7 +15,7 @@ with DAG(
 
     run_ingestion = DockerOperator(
         task_id="run_ingestion_container",
-        image="rikkijames/ingestion-app:latest",
+        image="rikkijames/api-warehouse-ingest:latest",
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         auto_remove="success",
@@ -25,13 +25,17 @@ with DAG(
             "DB_USER": conn.login,
             "DB_PASSWORD": conn.password,
             "DB_NAME": conn.schema,
+            "TRAKT_CLIENT_ID": Variable.get("TRAKT_CLIENT_ID"),
+            "TRAKT_CLIENT_SECRET": Variable.get("TRAKT_CLIENT_SECRET"),
+            "TRAKT_REFRESH_TOKEN": Variable.get("TRAKT_REFRESH_TOKEN"),
+            "TRAKT_REDIRECT_URL": Variable.get("TRAKT_REDIRECT_URL"),
         },
         command="uv run python main.py",
     )
 
     run_dbt = DockerOperator(
         task_id="run_dbt",
-        image="rikkijames/api_warehouse:latest",
+        image="rikkijames/api-warehouse-dbt:latest",
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         auto_remove="success",
