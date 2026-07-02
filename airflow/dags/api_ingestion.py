@@ -3,7 +3,7 @@ from airflow.providers.docker.operators.docker import DockerOperator
 from datetime import datetime, timedelta
 from airflow.hooks.base import BaseHook
 
-conn = BaseHook.get_connection("neondb")
+conn = BaseHook.get_connection("neon_db")
 
 with DAG(
     dag_id="api_ingestion_docker",

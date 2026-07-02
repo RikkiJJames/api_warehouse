@@ -8,7 +8,7 @@ from src.pipelines.trakt.pipeline import TraktPipeline
 
 async def main():
     # for Pipeline in [SpotifyPipeline, FootballPipeline, MmaPipeline]:
-    for Pipeline in [TraktPipeline]:
+    for Pipeline in [SpotifyPipeline, TraktPipeline]:
         result = await Pipeline().run()
         print(result)
 

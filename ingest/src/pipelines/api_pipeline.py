@@ -38,7 +38,10 @@ class ApiPipeline:
                 api_id=self.meta.api_id,
             )
 
-            return await engine.run(self.meta.endpoints)
+            return await engine.run(self.meta.endpoints, extra_params=self.get_extra_params())
+
+    def get_extra_params(self) -> dict:
+        return {}
 
     async def run(self):
         with get_service() as service:

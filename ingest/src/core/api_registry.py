@@ -47,3 +47,6 @@ class ApiRegistry:
         return self.service.repository.get_source_values(
             schema_table, column, distinct=distinct
         )
+
+    def get_max_value(self, schema_table: str, column: str):
+        return self.service.repository.get_max_value(schema_table, column)

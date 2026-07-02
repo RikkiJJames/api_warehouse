@@ -293,3 +293,12 @@ class ApiRepository:
             text(f'SELECT {distinct_kw}"{column}" FROM "{schema}"."{table}"')
         ).fetchall()
         return [row[0] for row in rows]
+
+    def get_max_value(self, schema_table: str, column: str):
+        """Return the max value of a column in the given table, or None if empty."""
+        schema, table = schema_table.split(".", 1)
+        logger.info(f"Loading max value from {schema_table}.{column}")
+        row = self.session.execute(
+            text(f'SELECT MAX("{column}") FROM "{schema}"."{table}"')
+        ).first()
+        return row[0] if row else None

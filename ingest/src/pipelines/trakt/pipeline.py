@@ -68,4 +68,4 @@ class TraktPipeline(ApiPipeline):
                 registry=self.registry,
                 api_id=self.meta.api_id,
             )
-            return await engine.run(self.meta.endpoints)
+            return await engine.run(self.meta.endpoints, extra_params=self.get_extra_params())

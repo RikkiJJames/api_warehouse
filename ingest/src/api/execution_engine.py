@@ -2,12 +2,17 @@ import asyncio
 import logging
 import re
 
-from src.api.execution_client import ExecutionClient
+from src.api.execution_client import ExecutionClient, RateLimitExceeded
 from src.api.execution_context import ExecutionContext
 from src.api.resolver import Resolver
 from src.api.response_extractor import ResponseExtractor
 from src.api.storage_adapter import StorageAdapter
 from src.core.api_registry import ApiRegistry
+
+
+# Conservative across Spotify's batch endpoints — /albums caps at 20 ids per
+# request, /tracks and /artists at 50.
+BATCH_SIZE = 20
 
 
 def _extract_field(records: list, field: str) -> list:
@@ -90,8 +95,9 @@ class ExecutionEngine:
             self.context.store(endpoint["logical_name"], all_items)
         return all_items
 
-    async def run(self, endpoints: list[dict]) -> dict:
+    async def run(self, endpoints: list[dict], extra_params: dict[str, dict] | None = None) -> dict:
         results = {}
+        extra_params = extra_params or {}
 
         for endpoint in sorted(endpoints, key=lambda x: x["exec_order"]):
 
@@ -106,6 +112,7 @@ class ExecutionEngine:
                 for p in params
                 if p.get("default_value") and not p.get("source_table")
             }
+            static_params.update(extra_params.get(logical_name, {}))
 
             try:
                 if db_params:
@@ -118,6 +125,61 @@ class ExecutionEngine:
                     )
 
                     total = 0
+
+                    # Some endpoints (e.g. Spotify's /tracks, /albums, /artists) accept
+                    # a batch of comma-separated ids per request instead of one id per
+                    # call — batching avoids hammering the API with hundreds of requests
+                    # as the source table (e.g. recently_played) grows over time.
+                    if p["param_name"] == "ids":
+                        new_values = source_values
+                        if endpoint.get("db_target"):
+                            # This metadata (track/album/artist) never changes once
+                            # fetched, so skip ids we've already stored instead of
+                            # re-requesting the whole historical set every run.
+                            existing_ids = set(
+                                self.registry.get_source_values(
+                                    endpoint["db_target"], p["source_column"]
+                                )
+                            )
+                            new_values = [v for v in source_values if v not in existing_ids]
+
+                        if not new_values:
+                            print(f"{logical_name} → 0 (nothing new)")
+                            results[logical_name] = {"status": "ok", "count": 0}
+                            continue
+
+                        batches = [
+                            new_values[i : i + BATCH_SIZE]
+                            for i in range(0, len(new_values), BATCH_SIZE)
+                        ]
+                        for i, batch in enumerate(batches):
+                            if i > 0:
+                                await self.api.throttle()
+
+                            path = self.resolver.resolve(template)
+
+                            try:
+                                items = await self.process_endpoint(
+                                    endpoint,
+                                    path,
+                                    params={**static_params, p["param_name"]: ",".join(batch)},
+                                )
+                                total += len(items)
+                                print(f"{logical_name}[batch {i + 1}/{len(batches)}] → {len(items)}")
+                            except RateLimitExceeded as e:
+                                # Rate limiting is API-wide, not per-batch — every
+                                # remaining batch would just 429 too, so stop here
+                                # instead of burning through the rest.
+                                logger.warning(
+                                    f"{logical_name} rate-limited on batch {i + 1}/{len(batches)} "
+                                    f"({e}); skipping remaining batches"
+                                )
+                                break
+                            except Exception as e:
+                                logger.warning(f"{logical_name}[batch {i + 1}/{len(batches)}] failed: {e}")
+
+                        results[logical_name] = {"status": "ok", "count": total}
+                        continue
 
                     for i, value in enumerate(source_values):
                         if i > 0:
@@ -134,6 +196,12 @@ class ExecutionEngine:
                             )
                             total += len(items)
                             print(f"{logical_name}[{value}] → {len(items)}")
+                        except RateLimitExceeded as e:
+                            logger.warning(
+                                f"{logical_name} rate-limited on [{value}] ({e}); "
+                                f"skipping remaining values"
+                            )
+                            break
                         except Exception as e:
                             logger.warning(f"{logical_name}[{value}] failed: {e}")
 

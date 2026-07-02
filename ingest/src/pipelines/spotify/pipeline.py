@@ -4,6 +4,10 @@ from src.pipelines.spotify.token_manager import TokenManager
 
 
 class SpotifyPipeline(ApiPipeline):
+    # cursor for me/player/recently-played — Spotify's `after` param expects a
+    # Unix ms timestamp and returns only items played after it, so each run
+    # only re-fetches plays that happened since the last successful run.
+    WATERMARK_KEY = "recently_played_watermark"
 
     def __init__(self):
         super().__init__("spotify")
@@ -47,3 +51,22 @@ class SpotifyPipeline(ApiPipeline):
             self._ensure_auth()
 
         return f"Bearer {self.token_manager.get_access_token()}"
+
+    def get_extra_params(self) -> dict:
+        watermark = self.meta.config.get(self.WATERMARK_KEY)
+        if not watermark:
+            return {}
+        return {"recently_played": {"after": watermark}}
+
+    async def execute(self):
+        result = await super().execute()
+        self._update_watermark()
+        return result
+
+    def _update_watermark(self) -> None:
+        max_played_at = self.registry.get_max_value("spotify.recently_played", "played_at")
+        if max_played_at is None:
+            return
+        epoch_ms = str(int(max_played_at.timestamp() * 1000))
+        self.meta.config[self.WATERMARK_KEY] = epoch_ms
+        self.registry.update_config(self.meta.api_id, self.WATERMARK_KEY, epoch_ms)
