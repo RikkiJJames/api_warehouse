@@ -43,4 +43,8 @@ class ApiBootstrapper:
                 api_id=api.id,
                 parameter_name=cfg.parameter_name,
                 parameter_value=cfg.parameter_value,
+                # refresh_token rotates at runtime (see TraktTokenManager's
+                # on_refresh callback); seeding must not overwrite a value
+                # already persisted in the DB.
+                overwrite=cfg.parameter_name != "refresh_token",
             )

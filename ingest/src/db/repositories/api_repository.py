@@ -59,17 +59,28 @@ class ApiRepository:
         logger.info(f"Fetched {len(rows)} API config records.")
         return {row.parameter_name: row.parameter_value for row in rows}
 
-    def add_config(self, api_id: int, parameter_name: str, parameter_value: str):
+    def add_config(
+        self,
+        api_id: int,
+        parameter_name: str,
+        parameter_value: str,
+        overwrite: bool = True,
+    ):
         logger.info(f"Adding API config: {parameter_name}")
         statement = insert(ApiConfig).values(
             api_id=api_id,
             parameter_name=parameter_name,
             parameter_value=parameter_value,
         )
-        statement = statement.on_conflict_do_update(
-            constraint="uq_api_config_api_param",
-            set_={"parameter_value": parameter_value},
-        )
+        if overwrite:
+            statement = statement.on_conflict_do_update(
+                constraint="uq_api_config_api_param",
+                set_={"parameter_value": parameter_value},
+            )
+        else:
+            statement = statement.on_conflict_do_nothing(
+                constraint="uq_api_config_api_param",
+            )
         self.session.execute(statement)
         self.session.commit()
 

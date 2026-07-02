@@ -1,5 +1,7 @@
 import time
 import base64
+from typing import Callable
+
 import httpx
 
 
@@ -16,11 +18,13 @@ class TokenManager:
         client_secret: str,
         refresh_token: str,
         timeout: int = 10,
+        on_refresh: Callable[[str], None] | None = None,
     ):
         self.client_id = client_id
         self.client_secret = client_secret
         self.refresh_token = refresh_token
         self.timeout = timeout
+        self.on_refresh = on_refresh
 
         self._access_token: str | None = None
         self._expires_at: float = 0
@@ -53,6 +57,10 @@ class TokenManager:
         payload = response.json()
 
         self._access_token = payload["access_token"]
+        if "refresh_token" in payload and payload["refresh_token"] != self.refresh_token:
+            self.refresh_token = payload["refresh_token"]
+            if self.on_refresh:
+                self.on_refresh(self.refresh_token)
         expires_in = payload.get("expires_in", 3600)
         self._expires_at = time.time() + expires_in - 30
 

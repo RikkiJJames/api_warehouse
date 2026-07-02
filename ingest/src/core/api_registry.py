@@ -14,6 +14,13 @@ class ApiRegistry:
     def get_config(self, api_id: int):
         return self.service.repository.get_config(api_id)
 
+    def update_config(self, api_id: int, parameter_name: str, parameter_value: str):
+        self.service.repository.add_config(
+            api_id=api_id,
+            parameter_name=parameter_name,
+            parameter_value=parameter_value,
+        )
+
     def get_endpoints(self, api_id: int):
         return self.service.repository.get_ordered_endpoints(api_id)
 

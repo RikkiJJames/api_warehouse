@@ -1,4 +1,5 @@
 import time
+from typing import Callable
 
 import httpx
 
@@ -15,12 +16,16 @@ class TraktTokenManager:
         client_id: str,
         client_secret: str,
         refresh_token: str,
+        redirect_url: str,
         timeout: int = 10,
+        on_refresh: Callable[[str], None] | None = None,
     ):
         self.client_id = client_id
         self.client_secret = client_secret
         self.refresh_token = refresh_token
+        self.redirect_uri = redirect_url
         self.timeout = timeout
+        self.on_refresh = on_refresh
 
         self._access_token: str | None = None
         self._expires_at: float = 0
@@ -35,6 +40,7 @@ class TraktTokenManager:
                 "refresh_token": self.refresh_token,
                 "client_id": self.client_id,
                 "client_secret": self.client_secret,
+                "redirect_uri": self.redirect_uri,
                 "grant_type": "refresh_token",
             },
             timeout=self.timeout,
@@ -46,8 +52,10 @@ class TraktTokenManager:
         payload = response.json()
 
         self._access_token = payload["access_token"]
-        if "refresh_token" in payload:
+        if "refresh_token" in payload and payload["refresh_token"] != self.refresh_token:
             self.refresh_token = payload["refresh_token"]
+            if self.on_refresh:
+                self.on_refresh(self.refresh_token)
         expires_in = payload.get("expires_in", 7776000)
         self._expires_at = time.time() + expires_in - 300
 

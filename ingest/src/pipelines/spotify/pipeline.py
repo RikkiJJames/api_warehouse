@@ -9,6 +9,10 @@ class SpotifyPipeline(ApiPipeline):
         super().__init__("spotify")
         self.token_manager = None
 
+    def _persist_refresh_token(self, token: str) -> None:
+        self.meta.config["refresh_token"] = token
+        self.registry.update_config(self.meta.api_id, "refresh_token", token)
+
     def _ensure_auth(self):
         config = self.meta.config
 
@@ -17,6 +21,7 @@ class SpotifyPipeline(ApiPipeline):
                 client_id=config["client_id"],
                 client_secret=config["client_secret"],
                 refresh_token=config["refresh_token"],
+                on_refresh=self._persist_refresh_token,
             )
             return
 
@@ -28,12 +33,13 @@ class SpotifyPipeline(ApiPipeline):
 
         tokens = flow.run()
 
-        config["refresh_token"] = tokens["refresh_token"]
+        self._persist_refresh_token(tokens["refresh_token"])
 
         self.token_manager = TokenManager(
             client_id=config["client_id"],
             client_secret=config["client_secret"],
             refresh_token=config["refresh_token"],
+            on_refresh=self._persist_refresh_token,
         )
 
     def get_api_key(self):
