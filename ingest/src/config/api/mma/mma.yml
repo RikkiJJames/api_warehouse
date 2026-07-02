@@ -4,7 +4,7 @@ base_url: https://v1.mma.api-sports.io
 
 api_config:
   - parameter_name: api_key
-    parameter_value: !env SPORTS_API_KEY
+    parameter_value: !env_optional SPORTS_API_KEY
   - parameter_name: header_name
     parameter_value: x-apisports-key
 

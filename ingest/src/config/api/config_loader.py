@@ -19,7 +19,17 @@ def _env_var_constructor(loader: yaml.Loader, node: yaml.ScalarNode) -> str:
     return value
 
 
+def _env_var_optional_constructor(
+    loader: yaml.Loader, node: yaml.ScalarNode
+) -> str | None:
+    var_name = loader.construct_scalar(node)
+    return os.getenv(var_name)
+
+
 yaml.add_constructor("!env", _env_var_constructor, Loader=yaml.SafeLoader)
+yaml.add_constructor(
+    "!env_optional", _env_var_optional_constructor, Loader=yaml.SafeLoader
+)
 
 
 class ConfigLoader:

@@ -39,6 +39,10 @@ class ApiBootstrapper:
                 )
 
         for cfg in spec.api_config:
+            if cfg.parameter_value is None:
+                # e.g. refresh_token via !env_optional once the DB already
+                # owns it — nothing to seed, and parameter_value is NOT NULL.
+                continue
             self.service.repository.add_config(
                 api_id=api.id,
                 parameter_name=cfg.parameter_name,

@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class ApiConfigSpec(BaseModel):
     parameter_name: str
-    parameter_value: str
+    parameter_value: str | None = None
 
 
 class EndpointParamSpec(BaseModel):
