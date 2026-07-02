@@ -2,7 +2,6 @@ from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from datetime import datetime, timedelta
 from airflow.hooks.base import BaseHook
-from airflow.models import Variable
 
 conn = BaseHook.get_connection("neondb")
 
@@ -13,6 +12,10 @@ with DAG(
     catchup=False,
 ) as dag:
 
+    # All api credentials (client_id/secret/redirect_url/refresh_token/api_key)
+    # are !env_optional in the pipeline config and already seeded in
+    # config.api_config from an earlier local run — the container reads them
+    # from the DB, so only the DB connection itself needs to be supplied here.
     run_ingestion = DockerOperator(
         task_id="run_ingestion_container",
         image="rikkijames/api-warehouse-ingest:latest",
@@ -25,10 +28,6 @@ with DAG(
             "DB_USER": conn.login,
             "DB_PASSWORD": conn.password,
             "DB_NAME": conn.schema,
-            "TRAKT_CLIENT_ID": Variable.get("TRAKT_CLIENT_ID"),
-            "TRAKT_CLIENT_SECRET": Variable.get("TRAKT_CLIENT_SECRET"),
-            "TRAKT_REFRESH_TOKEN": Variable.get("TRAKT_REFRESH_TOKEN"),
-            "TRAKT_REDIRECT_URL": Variable.get("TRAKT_REDIRECT_URL"),
         },
         command="uv run python main.py",
     )
