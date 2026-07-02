@@ -1,0 +1,21 @@
+select
+    trakt_show_id,
+    show_tmdb_id,
+    show_imdb_id,
+    show_slug,
+    show_title,
+    show_year,
+    network,
+    show_status,
+    show_rating,
+    show_overview,
+    genres,
+    country,
+    show_runtime_mins,
+    show_homepage,
+    show_certification,
+    show_first_aired,
+    show_aired_episodes,
+    show_airs,
+    content_type
+from {{ ref('int_shows') }}

@@ -1,0 +1,62 @@
+name: football
+description: Football sports data
+base_url: https://v3.football.api-sports.io
+
+api_config:
+  - parameter_name: api_key
+    parameter_value: !env SPORTS_API_KEY
+  - parameter_name: header_name
+    parameter_value: x-apisports-key
+
+endpoints:
+  - logical_name: leagues
+    path_template: leagues
+    exec_order: 1
+    is_active: false
+    db_target: football.leagues
+    response_path: response
+
+  - logical_name: seasons
+    path_template: leagues/seasons
+    exec_order: 2
+    is_active: false
+    db_target: football.seasons
+    db_source_field: year
+    db_target_column: year
+    response_path: response
+
+  - logical_name: countries
+    path_template: countries
+    exec_order: 3
+    is_active: false
+    db_target: football.countries
+    response_path: response
+
+  - logical_name: venues
+    path_template: venues
+    exec_order: 4
+    is_active: false
+    db_target: football.venues
+    response_path: response
+    params:
+      - param_name: country
+        required: true
+        source_table: football.countries
+        source_column: name
+        is_distinct: true
+
+  - logical_name: teams
+    path_template: teams
+    exec_order: 5
+    is_active: true
+    db_target: football.teams
+    response_path: response
+    params:
+      - param_name: league
+        required: true
+        source_table: football.leagues
+        source_column: league_id
+        is_distinct: true
+      - param_name: season
+        required: false
+        default_value: "2024"

@@ -1,0 +1,129 @@
+version: 2
+
+models:
+  - name: int_shows
+    description: Deduplicated show catalogue derived from episode watch history, one row per show
+    columns:
+      - name: trakt_show_id
+        description: Trakt show ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: show_tmdb_id
+        description: TMDB show ID
+      - name: show_imdb_id
+        description: IMDb show ID
+      - name: show_slug
+        description: Trakt URL slug
+      - name: show_title
+        description: Show title
+        data_tests:
+          - not_null
+      - name: show_year
+        description: Show premiere year
+      - name: network
+        description: Broadcasting network
+      - name: show_status
+        description: Show status (e.g. continuing, ended)
+      - name: show_rating
+        description: Trakt community rating
+      - name: show_overview
+        description: Show synopsis
+      - name: genres
+        description: JSONB array of genre strings
+      - name: country
+        description: Country of origin
+      - name: show_runtime_mins
+        description: Typical episode runtime in minutes
+      - name: show_homepage
+        description: Official show homepage
+      - name: show_certification
+        description: Age certification
+      - name: show_first_aired
+        description: Show premiere date
+      - name: show_aired_episodes
+        description: Total number of aired episodes
+      - name: show_airs
+        description: JSONB with air schedule (day, time, timezone)
+      - name: content_type
+        description: Derived content category based on genres
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['anime', 'animation', 'documentary', 'show']
+
+  - name: int_movies
+    description: Deduplicated movie catalogue derived from watch history, one row per movie
+    columns:
+      - name: trakt_movie_id
+        description: Trakt movie ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: tmdb_id
+        description: TMDB movie ID
+      - name: imdb_id
+        description: IMDb movie ID
+      - name: slug
+        description: Trakt URL slug
+      - name: title
+        description: Movie title
+        data_tests:
+          - not_null
+      - name: year
+        description: Movie release year
+      - name: runtime_mins
+        description: Movie runtime in minutes
+      - name: rating
+        description: Trakt community rating
+      - name: votes
+        description: Number of Trakt votes
+      - name: overview
+        description: Movie synopsis
+      - name: tagline
+        description: Movie tagline
+      - name: released_date
+        description: Official release date
+      - name: genres
+        description: JSONB array of genre strings
+      - name: country
+        description: Country of origin
+      - name: language
+        description: Primary language
+      - name: homepage
+        description: Official movie homepage
+      - name: trailer
+        description: Trailer URL
+      - name: status
+        description: Release status
+      - name: certification
+        description: Age certification
+
+  - name: int_show_watch_stats
+    description: Aggregated watch statistics per show
+    columns:
+      - name: trakt_show_id
+        description: Trakt show ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: show_title
+        description: Show title
+        data_tests:
+          - not_null
+      - name: episodes_watched
+        description: Total number of episodes watched
+        data_tests:
+          - not_null
+      - name: seasons_watched
+        description: Number of distinct seasons watched
+      - name: total_runtime_mins
+        description: Total viewing time in minutes
+      - name: first_watched_at
+        description: Datetime of first episode watched
+      - name: last_watched_at
+        description: Datetime of most recently watched episode
+      - name: episodes_last_7_days
+        description: Episodes watched in the last 7 days
+      - name: episodes_last_30_days
+        description: Episodes watched in the last 30 days

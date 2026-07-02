@@ -1,0 +1,307 @@
+version: 2
+
+models:
+  # ── Dimensions ────────────────────────────────────────────────────────────
+
+  - name: dim_movies
+    description: Movie attributes — one row per unique movie watched
+    columns:
+      - name: trakt_movie_id
+        description: Trakt movie ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: tmdb_id
+        description: TMDB ID for image lookups
+      - name: imdb_id
+        description: IMDb ID
+      - name: slug
+        description: Trakt URL slug
+      - name: title
+        description: Movie title
+        data_tests:
+          - not_null
+      - name: year
+        description: Release year
+      - name: runtime_mins
+        description: Runtime in minutes
+      - name: rating
+        description: Trakt community rating (0–10)
+      - name: votes
+        description: Number of Trakt votes
+      - name: overview
+        description: Synopsis
+      - name: tagline
+        description: Tagline
+      - name: released_date
+        description: Official release date
+      - name: genres
+        description: JSONB array of genre strings
+      - name: country
+        description: Country of origin
+      - name: language
+        description: Primary language
+      - name: homepage
+        description: Official homepage URL
+      - name: trailer
+        description: Trailer URL
+      - name: certification
+        description: Age certification
+      - name: status
+        description: Release status
+
+  - name: dim_shows
+    description: Show attributes — one row per unique show watched
+    columns:
+      - name: trakt_show_id
+        description: Trakt show ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: show_tmdb_id
+        description: TMDB ID for image lookups
+      - name: show_imdb_id
+        description: IMDb ID
+      - name: show_slug
+        description: Trakt URL slug
+      - name: show_title
+        description: Show title
+        data_tests:
+          - not_null
+      - name: show_year
+        description: Premiere year
+      - name: network
+        description: Broadcasting network
+      - name: show_status
+        description: Show status (continuing, ended, etc.)
+      - name: show_rating
+        description: Trakt community rating
+      - name: show_overview
+        description: Synopsis
+      - name: genres
+        description: JSONB array of genre strings
+      - name: country
+        description: Country of origin
+      - name: show_runtime_mins
+        description: Typical episode runtime in minutes
+      - name: show_homepage
+        description: Official homepage URL
+      - name: show_certification
+        description: Age certification
+      - name: show_first_aired
+        description: Premiere date
+      - name: show_aired_episodes
+        description: Total aired episodes
+      - name: show_airs
+        description: JSONB air schedule (day, time, timezone)
+      - name: content_type
+        description: Derived content type from genres
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['anime', 'animation', 'documentary', 'show']
+
+  - name: dim_anime
+    description: Anime shows — filtered view of dim_shows where content_type = 'anime'
+    columns:
+      - name: trakt_show_id
+        description: Trakt show ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: show_title
+        description: Anime title
+        data_tests:
+          - not_null
+
+  - name: dim_genre_map
+    description: Bridge table — one row per title × genre
+    columns:
+      - name: trakt_id
+        description: Trakt movie ID or show ID
+        data_tests:
+          - not_null
+      - name: tmdb_id
+        description: TMDB ID for image lookups
+      - name: imdb_id
+        description: IMDb ID
+      - name: title
+        description: Movie or show title
+        data_tests:
+          - not_null
+      - name: year
+        description: Release or premiere year
+      - name: media_type
+        description: movie or show
+        data_tests:
+          - not_null
+      - name: content_type
+        description: Derived type (movie, show, anime, animation, documentary)
+        data_tests:
+          - not_null
+      - name: rating
+        description: Trakt community rating
+      - name: genre
+        description: Individual genre for this title
+        data_tests:
+          - not_null
+
+  # ── Facts ─────────────────────────────────────────────────────────────────
+
+  - name: fct_movie_stats
+    description: Aggregated watch statistics per movie — join to dim_movies on trakt_movie_id
+    columns:
+      - name: trakt_movie_id
+        description: FK to dim_movies
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_movies')
+              field: trakt_movie_id
+      - name: watch_count
+        description: Number of times watched
+        data_tests:
+          - not_null
+      - name: first_watched_at
+        description: Datetime of first watch
+      - name: last_watched_at
+        description: Datetime of most recent watch
+      - name: total_runtime_mins
+        description: Total minutes spent watching
+      - name: total_runtime_hours
+        description: Total hours spent watching
+      - name: watches_last_7_days
+        description: Watch count in the last 7 days
+      - name: watches_last_30_days
+        description: Watch count in the last 30 days
+
+  - name: fct_show_stats
+    description: Aggregated watch statistics per show — join to dim_shows on trakt_show_id
+    columns:
+      - name: trakt_show_id
+        description: FK to dim_shows
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_shows')
+              field: trakt_show_id
+      - name: episodes_watched
+        description: Total episodes watched
+        data_tests:
+          - not_null
+      - name: seasons_watched
+        description: Number of distinct seasons watched
+      - name: total_runtime_mins
+        description: Total viewing time in minutes
+      - name: total_runtime_hours
+        description: Total viewing time in hours
+      - name: first_watched_at
+        description: Datetime of first episode watched
+      - name: last_watched_at
+        description: Datetime of most recently watched episode
+      - name: episodes_last_7_days
+        description: Episodes watched in the last 7 days
+      - name: episodes_last_30_days
+        description: Episodes watched in the last 30 days
+      - name: completion_pct
+        description: Percentage of aired episodes watched
+
+  - name: fct_watch_history
+    description: One row per watch event (movies and episodes) ordered by most recent
+    columns:
+      - name: history_id
+        description: Trakt history event ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: watched_at
+        description: Datetime of the watch event
+        data_tests:
+          - not_null
+      - name: media_type
+        description: Type of content (movie, episode, anime)
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['movie', 'episode', 'anime']
+      - name: title
+        description: Movie title or episode title
+      - name: year
+        description: Release year
+      - name: trakt_id
+        description: FK to dim_movies or dim_shows
+      - name: tmdb_id
+        description: TMDB ID for image lookups
+      - name: imdb_id
+        description: IMDb ID
+      - name: runtime_mins
+        description: Runtime of this watch event in minutes
+      - name: show_title
+        description: Parent show title (null for movies)
+      - name: season
+        description: Season number (null for movies)
+      - name: episode_number
+        description: Episode number (null for movies)
+      - name: network
+        description: Broadcasting network (null for movies)
+      - name: genres
+        description: JSONB array of genre strings
+
+  - name: fct_watchlist
+    description: Unified watchlist fact — movies and shows on the watchlist ordered by rank
+    columns:
+      - name: watchlist_id
+        description: Trakt watchlist entry ID
+        data_tests:
+          - unique
+          - not_null
+      - name: listed_at
+        description: When the item was added to the watchlist
+        data_tests:
+          - not_null
+      - name: rank
+        description: Watchlist rank
+      - name: notes
+        description: User notes
+      - name: media_type
+        description: movie or show
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['movie', 'show']
+      - name: trakt_id
+        description: Trakt movie ID or show ID
+        data_tests:
+          - not_null
+      - name: tmdb_id
+        description: TMDB ID for image lookups
+      - name: imdb_id
+        description: IMDb ID
+      - name: slug
+        description: Trakt URL slug
+      - name: title
+        description: Movie or show title
+        data_tests:
+          - not_null
+      - name: year
+        description: Release or premiere year
+
+  - name: fct_genre_stats
+    description: Genre breakdown — title count and total runtime per genre and media type
+    columns:
+      - name: genre
+        description: Genre name
+        data_tests:
+          - not_null
+      - name: media_type
+        description: Type of media (movie, show, anime, etc.)
+        data_tests:
+          - not_null
+      - name: title_count
+        description: Number of distinct titles in this genre
+        data_tests:
+          - not_null
+      - name: total_runtime_mins
+        description: Total runtime across all titles in this genre

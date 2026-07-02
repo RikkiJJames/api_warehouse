@@ -1,0 +1,177 @@
+version: 2
+
+models:
+  # ── Dimensions ────────────────────────────────────────────────────────────
+
+  - name: dim_tracks
+    description: Track attributes — one row per unique track, denormalized with artist and album
+    columns:
+      - name: track_id
+        description: Surrogate primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: spotify_track_id
+        description: Spotify track ID
+        data_tests:
+          - unique
+          - not_null
+      - name: track_name
+        description: Track title
+        data_tests:
+          - not_null
+      - name: track_uri
+        description: Spotify URI
+      - name: duration_ms
+        description: Track duration in milliseconds
+      - name: explicit
+        description: Whether the track contains explicit content
+      - name: popularity
+        description: Spotify popularity score (0–100)
+      - name: artist_id
+        description: Surrogate FK to dim_artists
+      - name: spotify_artist_id
+        description: Spotify artist ID
+      - name: artist_name
+        description: Artist name
+      - name: artist_uri
+        description: Spotify artist URI
+      - name: album_id
+        description: Surrogate FK to dim_albums
+      - name: spotify_album_id
+        description: Spotify album ID
+      - name: album_name
+        description: Album title
+      - name: album_uri
+        description: Spotify album URI
+      - name: release_date
+        description: Album release date
+      - name: total_tracks
+        description: Number of tracks on the album
+
+  - name: dim_artists
+    description: Artist attributes — one row per unique artist
+    columns:
+      - name: artist_id
+        description: Surrogate primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: spotify_artist_id
+        description: Spotify artist ID
+        data_tests:
+          - unique
+          - not_null
+      - name: artist_name
+        description: Artist name
+        data_tests:
+          - not_null
+      - name: artist_uri
+        description: Spotify artist URI
+
+  - name: dim_albums
+    description: Album attributes — one row per unique album
+    columns:
+      - name: album_id
+        description: Surrogate primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: spotify_album_id
+        description: Spotify album ID
+        data_tests:
+          - unique
+          - not_null
+      - name: album_name
+        description: Album title
+        data_tests:
+          - not_null
+      - name: album_uri
+        description: Spotify album URI
+      - name: release_date
+        description: Album release date
+        data_tests:
+          - not_null
+      - name: total_tracks
+        description: Number of tracks on the album
+
+  # ── Facts ─────────────────────────────────────────────────────────────────
+
+  - name: fct_play_history
+    description: One row per play event — raw listening timeline
+    columns:
+      - name: played_at
+        description: Datetime of the play event
+        data_tests:
+          - not_null
+      - name: spotify_track_id
+        description: FK to dim_tracks
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_tracks')
+              field: spotify_track_id
+      - name: track_duration_ms
+        description: Duration of this play in milliseconds
+
+  - name: fct_track_stats
+    description: Aggregated play statistics per track — join to dim_tracks on spotify_track_id
+    columns:
+      - name: spotify_track_id
+        description: FK to dim_tracks
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_tracks')
+              field: spotify_track_id
+      - name: times_played
+        description: Total play count
+        data_tests:
+          - not_null
+      - name: first_played_at
+        description: Datetime of first play
+      - name: last_played_at
+        description: Datetime of most recent play
+      - name: total_listening_ms
+        description: Total listening time in milliseconds
+      - name: total_listening_hours
+        description: Total listening time in hours
+      - name: plays_last_7_days
+        description: Plays in the last 7 days
+      - name: plays_last_30_days
+        description: Plays in the last 30 days
+      - name: plays_last_365_days
+        description: Plays in the last 365 days
+
+  - name: fct_artist_stats
+    description: Aggregated play statistics per artist — join to dim_artists on spotify_artist_id
+    columns:
+      - name: spotify_artist_id
+        description: FK to dim_artists
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_artists')
+              field: spotify_artist_id
+      - name: unique_tracks_played
+        description: Number of distinct tracks played from this artist
+      - name: times_played
+        description: Total play count across all tracks
+        data_tests:
+          - not_null
+      - name: total_listening_ms
+        description: Total listening time in milliseconds
+      - name: total_listening_hours
+        description: Total listening time in hours
+      - name: first_played_at
+        description: Datetime of first play
+      - name: last_played_at
+        description: Datetime of most recent play
+      - name: plays_last_7_days
+        description: Plays in the last 7 days
+      - name: plays_last_30_days
+        description: Plays in the last 30 days
+      - name: plays_last_365_days
+        description: Plays in the last 365 days

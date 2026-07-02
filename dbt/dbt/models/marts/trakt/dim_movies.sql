@@ -1,0 +1,21 @@
+select
+    trakt_movie_id,
+    tmdb_id,
+    imdb_id,
+    slug,
+    title,
+    year,
+    runtime_mins,
+    rating,
+    votes,
+    overview,
+    tagline,
+    released_date,
+    genres,
+    country,
+    language,
+    homepage,
+    trailer,
+    certification,
+    status
+from {{ ref('int_movies') }}

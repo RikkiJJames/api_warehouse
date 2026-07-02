@@ -1,0 +1,45 @@
+name: mma
+description: MMA sports data
+base_url: https://v1.mma.api-sports.io
+
+api_config:
+  - parameter_name: api_key
+    parameter_value: !env SPORTS_API_KEY
+  - parameter_name: header_name
+    parameter_value: x-apisports-key
+
+endpoints:
+  - logical_name: categories
+    path_template: categories
+    exec_order: 1
+    is_active: false
+    db_target: mma.categories
+    db_source_field: name
+    db_target_column: category_name
+    response_path: response
+
+  - logical_name: fighters
+    path_template: fighters
+    exec_order: 2
+    is_active: false
+    db_target: mma.fighters
+    response_path: response
+    params:
+      - param_name: category
+        required: true
+        source_table: mma.categories
+        source_column: category_name
+        is_distinct: true
+
+  - logical_name: fighter_records
+    path_template: fighters/records
+    exec_order: 3
+    is_active: true
+    db_target: mma.fighter_records
+    response_path: response
+    params:
+      - param_name: id
+        required: true
+        source_table: mma.fighters
+        source_column: fighter_id
+        is_distinct: true

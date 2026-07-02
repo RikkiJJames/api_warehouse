@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_football_teams
+    description: Football teams
+    columns:
+      - name: team_id
+        description: Source data id number
+        data_tests:
+          - unique
+          - not_null
+      - name: team_name
+        description: Full name of the team
+      - name: team_code
+        description: Three letter abbreviation of the team name
+      - name: team_country
+        description: Where the team originates from
+      - name: team_founded
+        description: Team founding year
+      - name: season
+        description: The year the team was active
+      - name: venue_id
+        description: Links to home stadium in venue table
+

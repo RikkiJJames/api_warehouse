@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: mma
+    schema: mma
+    description: Raw MMA data ingested from the API
+    tables:
+      - name: categories
+        description: MMA weight categories
+      - name: fighters
+        description: Fighter profiles per category
+      - name: fighter_records
+        description: Win/loss records per fighter

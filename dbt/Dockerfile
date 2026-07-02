@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+WORKDIR /usr/app
+
+# install uv
+RUN pip install uv
+
+# copy dependency files first (for caching)
+COPY pyproject.toml uv.lock ./
+
+# install deps using uv
+RUN uv sync --frozen
+
+# copy dbt project
+COPY dbt .
+
+ENV PATH="/usr/app/.venv/bin:$PATH"
+
+CMD ["dbt", "build"]

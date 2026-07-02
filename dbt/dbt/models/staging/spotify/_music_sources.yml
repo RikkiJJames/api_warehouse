@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: spotify
+    schema: spotify
+    description: Spotify listening history
+    tables:
+      - name: recently_played
+        description: Recently played tracks
+      - name: track
+        description: Track details from recently played
+      - name: album
+        description: Album details from tracks in recently played
+      - name: artist
+        description: Artist details from tracks in recently played

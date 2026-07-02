@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: football
+    schema: football
+    description: Raw football data ingested from the API
+    tables:
+      - name: leagues
+        description: Football leagues
+      - name: seasons
+        description: Available seasons by year
+      - name: countries
+        description: Countries with football coverage
+      - name: venues
+        description: Stadium and venue details
+      - name: teams
+        description: Teams per league per season

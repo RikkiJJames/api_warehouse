@@ -1,0 +1,70 @@
+name: spotify
+description: Spotify listening data
+base_url: https://api.spotify.com/v1
+
+api_config:
+  - parameter_name: client_id
+    parameter_value: !env SPOTIFY_CLIENT_ID
+  - parameter_name: client_secret
+    parameter_value: !env SPOTIFY_CLIENT_SECRET
+  - parameter_name: refresh_token
+    parameter_value: !env SPOTIFY_REFRESH_TOKEN
+  - parameter_name: redirect_url
+    parameter_value: !env SPOTIFY_REDIRECT_URL
+
+endpoints:
+  - logical_name: recently_played
+    path_template: me/player/recently-played
+    exec_order: 1
+    is_active: true
+    db_target: spotify.recently_played
+    response_path: items
+    params:
+      - param_name: limit
+        default_value: "50"
+
+  - logical_name: track
+    path_template: tracks
+    exec_order: 2
+    is_active: true
+    db_target: spotify.track
+    response_path: tracks
+    params:
+      - param_name: ids
+        source_table: spotify.recently_played
+        source_column: track_id
+        is_distinct: true
+
+  - logical_name: album
+    path_template: albums
+    exec_order: 3
+    is_active: true
+    db_target: spotify.album
+    response_path: albums
+    params:
+      - param_name: ids
+        source_table: spotify.track
+        source_column: album_id
+        is_distinct: true
+
+  - logical_name: artist
+    path_template: artists
+    exec_order: 4
+    is_active: true
+    db_target: spotify.artist
+    response_path: artists
+    params:
+      - param_name: ids
+        source_table: spotify.track
+        source_column: artist_id
+        is_distinct: true
+
+  - logical_name: saved_tracks
+    path_template: me/tracks
+    exec_order: 5
+    is_active: false
+    db_target: spotify.saved_tracks
+    response_path: items
+    params:
+      - param_name: limit
+        default_value: "50"

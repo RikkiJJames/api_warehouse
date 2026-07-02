@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: trakt
+    schema: trakt
+    description: Trakt watch history and watchlist
+    tables:
+      - name: watched_movies
+        description: Movies watched with full metadata
+      - name: watched_episodes
+        description: Episodes watched with show and episode metadata
+      - name: watchlist_movies
+        description: Movies saved to watchlist
+      - name: watchlist_shows
+        description: Shows saved to watchlist
