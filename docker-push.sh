@@ -6,7 +6,7 @@ IMAGE="all"
 TAG="latest"
 
 usage() {
-  echo "Usage: $0 [--image dbt|airflow|all] [--tag <tag>]"
+  echo "Usage: $0 [--image dbt|airflow|ingest|all] [--tag <tag>]"
   exit 1
 }
 
@@ -18,11 +18,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# entries are "context:dockerfile:name" — dbt builds from the repo root
-# since its Dockerfile needs the shared root pyproject.toml/uv.lock
+# entries are "context:dockerfile:name" — dbt and ingest build from the repo
+# root since their Dockerfiles need the shared root pyproject.toml/uv.lock
 ALL_IMAGES=(
   "airflow:airflow/Dockerfile:airflow"
   ".:dbt/Dockerfile:dbt"
+  ".:ingest/Dockerfile:ingest"
 )
 
 SELECTED=()
@@ -34,7 +35,7 @@ for entry in "${ALL_IMAGES[@]}"; do
 done
 
 if [[ ${#SELECTED[@]} -eq 0 ]]; then
-  echo "Error: unknown image '$IMAGE'. Must be dbt, airflow, or all."
+  echo "Error: unknown image '$IMAGE'. Must be dbt, airflow, ingest, or all."
   exit 1
 fi
 
