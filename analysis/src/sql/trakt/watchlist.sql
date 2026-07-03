@@ -1,0 +1,1 @@
+SELECT * FROM marts.fct_watchlist ORDER BY rank;

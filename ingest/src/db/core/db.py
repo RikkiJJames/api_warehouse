@@ -1,13 +1,13 @@
 import os
 from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
-from src.config.logs.logging_config import *
+from ...config.logs.logging_config import *
 import logging
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(find_dotenv())
 
 Base = declarative_base()
 

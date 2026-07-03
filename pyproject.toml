@@ -19,4 +19,5 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["analysis"]
+where = ["."]
+include = ["analysis*", "ingest*"]

@@ -21,92 +21,88 @@ def _():
     import pandas as pd
     import altair as alt
     from datetime import timedelta, datetime, timezone
-    from dotenv import load_dotenv
-    from src.db.core.db import Database, DATABASE_CONFIG
+    from pathlib import Path
 
-    return (
-        DATABASE_CONFIG,
-        Database,
-        alt,
-        datetime,
-        load_dotenv,
-        mo,
-        pd,
-        timedelta,
-        timezone,
-    )
+    return Path, alt, datetime, mo, pd, timedelta, timezone
 
 
 @app.cell
-def _(load_dotenv):
-    loaded = load_dotenv()
+def _():
+    # import sys
+    # from pathlib import Path
+    # ROOT_DIR = Path.cwd().resolve()
+    # sys.path.insert(0, ROOT_DIR)
+    # ROOT_DIR
     return
 
 
 @app.cell
-def _(DATABASE_CONFIG, Database):
-    db = Database(DATABASE_CONFIG)
-    db.connect()
-    return (db,)
+def _():
+    from analysis.src.loader.data_loader import DataLoader
 
-
-# ── Spotify data ─────────────────────────────────────────────────────────────
+    return (DataLoader,)
 
 
 @app.cell
-def _(db, pd):
-    enriched_track_df = pd.DataFrame(
-        db.execute_query("SELECT * FROM intermediate.int_track_enriched;")
-    )
+def _(Path):
+    SRC_PATH = Path(__file__).parents[1]
+    SQL_PATH = SRC_PATH / "sql"
+    return (SQL_PATH,)
+
+
+@app.cell
+def _(DataLoader, SQL_PATH):
+    data_loader = DataLoader()
+    data = data_loader.load_data(file_dir=SQL_PATH)
+    return (data,)
+
+
+@app.cell
+def _(data, pd):
+    enriched_track_df = data['enriched_track']
     enriched_track_df['release_date'] = pd.to_datetime(enriched_track_df['release_date'], format='mixed')
     enriched_track_df['decade'] = (enriched_track_df['release_date'].dt.year // 10) * 10
     return (enriched_track_df,)
 
 
 @app.cell
-def _(db, pd):
-    track_df = pd.DataFrame(db.execute_query("SELECT * FROM staging.recently_played;"))
+def _(data):
+    track_df = data['track']
     return (track_df,)
 
 
-# ── Trakt data ───────────────────────────────────────────────────────────────
-
-
 @app.cell
-def _(db, pd):
-    history_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.fct_watch_history ORDER BY watched_at DESC;"))
+def _(data):
+    history_df = data['watch_history']
     return (history_df,)
 
 
 @app.cell
-def _(db, pd):
-    dim_movies_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.dim_movies;"))
-    fct_movie_stats_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.fct_movie_stats;"))
+def _(data):
+    dim_movies_df = data['dim_movies']
+    fct_movie_stats_df =data['fct_movie_stats']
     movies_df = dim_movies_df.merge(fct_movie_stats_df, on="trakt_movie_id", how="left")
     return (movies_df,)
 
 
 @app.cell
-def _(db, pd):
-    dim_shows_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.dim_shows;"))
-    fct_show_stats_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.fct_show_stats;"))
+def _(data):
+    dim_shows_df = data['dim_shows']
+    fct_show_stats_df = data['fct_show_stats']
     shows_df = dim_shows_df.merge(fct_show_stats_df, on="trakt_show_id", how="left")
     return (shows_df,)
 
 
 @app.cell
-def _(db, pd):
-    watchlist_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.fct_watchlist ORDER BY rank;"))
+def _(data):
+    watchlist_df = data['watchlist']
     return (watchlist_df,)
 
 
 @app.cell
-def _(db, pd):
-    genre_stats_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.fct_genre_stats ORDER BY title_count DESC;"))
+def _(data):
+    genre_stats_df = data['fct_genre_stats']
     return (genre_stats_df,)
-
-
-# ── Overview tab: cross-source summary ──────────────────────────────────────
 
 
 @app.cell
@@ -141,9 +137,6 @@ def _(alt, history_df, mo, pd, track_df):
         ).properties(title='Daily Activity — Spotify Plays vs. Trakt Watches', height=350)
     )
     return (combined_activity_chart,)
-
-
-# ── Spotify tab: Tracks ──────────────────────────────────────────────────────
 
 
 @app.cell
@@ -296,9 +289,6 @@ def _(alt, enriched_track_df, mo):
     return (explicit_chart,)
 
 
-# ── Spotify tab: Artists ─────────────────────────────────────────────────────
-
-
 @app.cell
 def _(enriched_track_df):
     artist_df = (
@@ -336,9 +326,6 @@ def _(artist_selector, enriched_track_df, get_listening_time):
     )
     time_listened = get_listening_time(enriched_track_df[_mask]['duration_ms'])
     return artist_detail_df, time_listened
-
-
-# ── Spotify tab: Albums ──────────────────────────────────────────────────────
 
 
 @app.cell
@@ -406,9 +393,6 @@ def _(
         ]),
     })
     return (spotify_view,)
-
-
-# ── Trakt tab ────────────────────────────────────────────────────────────────
 
 
 @app.cell
@@ -564,9 +548,6 @@ def _(
         ]),
     })
     return (trakt_view,)
-
-
-# ── Top-level assembly ───────────────────────────────────────────────────────
 
 
 @app.cell

@@ -1,0 +1,1 @@
+SELECT * FROM intermediate.int_track_enriched;

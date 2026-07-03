@@ -1,0 +1,1 @@
+SELECT * FROM marts.fct_movie_stats;

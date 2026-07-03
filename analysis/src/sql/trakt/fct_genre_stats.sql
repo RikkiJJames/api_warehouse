@@ -1,0 +1,1 @@
+SELECT * FROM marts.fct_genre_stats ORDER BY title_count DESC;
