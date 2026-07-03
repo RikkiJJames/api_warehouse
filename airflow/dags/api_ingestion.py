@@ -8,7 +8,7 @@ conn = BaseHook.get_connection("neon_db")
 with DAG(
     dag_id="api_ingestion_docker",
     start_date=datetime(2025, 1, 1),
-    schedule=timedelta(hours=1, minutes=30),
+    schedule=timedelta(hours=1),
     catchup=False,
 ) as dag:
 
