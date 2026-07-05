@@ -18,12 +18,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# entries are "context:dockerfile:name" — dbt and ingest build from the repo
-# root since their Dockerfiles need the shared root pyproject.toml/uv.lock
+# entries are "context:dockerfile:name"
 ALL_IMAGES=(
   "airflow:airflow/Dockerfile:airflow"
   ".:dbt/Dockerfile:dbt"
-  ".:ingest/Dockerfile:ingest"
+  "ingest:ingest/Dockerfile:ingest"
 )
 
 SELECTED=()
