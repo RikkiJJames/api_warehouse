@@ -6,7 +6,7 @@ WORKDIR /usr/app
 RUN pip install uv
 
 # copy dependency files first (for caching)
-COPY pyproject.toml uv.lock ./
+COPY ingest/pyproject.toml ingest/uv.lock ./
 
 # install deps using uv
 RUN uv sync --frozen
