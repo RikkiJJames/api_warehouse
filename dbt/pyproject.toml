@@ -1,5 +1,5 @@
 [project]
-name = "api-warehouse-dbt"
+name = "api-warehouse"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
