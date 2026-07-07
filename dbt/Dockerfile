@@ -5,13 +5,11 @@ WORKDIR /usr/app
 # install uv
 RUN pip install uv
 
-# copy dependency files first (for caching)
 COPY pyproject.toml uv.lock ./
 
-# install deps using uv
-RUN uv sync --frozen
+# Force uv to use the container Python
+RUN uv sync --frozen --python /usr/local/bin/python
 
-# copy dbt project
 COPY . .
 
 ENV PATH="/usr/app/.venv/bin:$PATH"
