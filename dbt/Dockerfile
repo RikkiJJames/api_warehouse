@@ -13,6 +13,7 @@ RUN uv sync --frozen
 COPY . .
 
 ENV PATH="/usr/app/.venv/bin:$PATH"
+ENV DBT_PROFILES_DIR="/usr/app/dbt/dbt"
 
 WORKDIR /usr/app/dbt/dbt
 
