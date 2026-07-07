@@ -1,4 +1,4 @@
-from ingest.src.db.core.db import Database, DATABASE_CONFIG
+from ingest.src.db.core.db import Database
 import pandas as pd
 from pathlib import Path
 from .sql_loader import SQLLoader
@@ -17,7 +17,7 @@ class DataLoader:
 
     def __init__(self):
         self.sql_loader: SQLLoader = SQLLoader(sql_path=SQL_PATH)
-        self.db: Database = Database(DATABASE_CONFIG)
+        self.db: Database = Database()
 
     def load_data(self, file_dir: str) -> dict[str, pd.DataFrame]:
         """

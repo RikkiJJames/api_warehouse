@@ -1,13 +1,14 @@
+import os
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.db.core.db import DATABASE_CONFIG
-
 _engine = create_engine(
-    f"postgresql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}"
-    f"@{DATABASE_CONFIG['host']}:{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['database']}",
+    (
+        f"postgresql://{os.getenv('DB_USER', '')}:{os.getenv('DB_PASSWORD', '')}"
+        f"@{os.getenv('DB_HOST', '')}:{os.getenv('DB_PORT', '')}/{os.getenv('DB_NAME', '')}"
+    ),
     connect_args={"sslmode": "require"},
 )
 _SessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)

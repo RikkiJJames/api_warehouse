@@ -78,10 +78,9 @@ def _():
     import altair as alt
     from datetime import timedelta, datetime, timezone
     from dotenv import load_dotenv
-    from src.db.core.db import Database, DATABASE_CONFIG
+    from src.db.core.db import Database
 
     return (
-        DATABASE_CONFIG,
         Database,
         alt,
         datetime,
@@ -100,8 +99,8 @@ def _(load_dotenv):
 
 
 @app.cell
-def _(DATABASE_CONFIG, Database):
-    db = Database(DATABASE_CONFIG)
+def _(Database):
+    db = Database()
     db.connect()
     return (db,)
 

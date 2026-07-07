@@ -11,24 +11,23 @@ load_dotenv(find_dotenv())
 
 Base = declarative_base()
 
-DATABASE_CONFIG = {
-    "host": os.getenv("DB_HOST", ""),
-    "database": os.getenv("DB_NAME", ""),
-    "user": os.getenv("DB_USER", ""),
-    "password": os.getenv("DB_PASSWORD", ""),
-    "port": os.getenv("DB_PORT", ""),
-}
-
 
 class Database:
-    def __init__(self, config):
+    def __init__(self, config=None):
         self.config = config
         self.engine = None
 
     def connect(self):
         try:
+            config = {
+                "host": os.getenv("DB_HOST", ""),
+                "database": os.getenv("DB_NAME", ""),
+                "user": os.getenv("DB_USER", ""),
+                "password": os.getenv("DB_PASSWORD", ""),
+                "port": os.getenv("DB_PORT", ""),
+            }
             self.engine = create_engine(
-                f"postgresql://{self.config['user']}:{self.config['password']}@{self.config['host']}:{self.config['port']}/{self.config['database']}"
+                f"postgresql://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}"
             )
             logger.info("Database connection established.")
 

@@ -86,9 +86,9 @@ def _():
     import pandas as pd
     import altair as alt
     from dotenv import load_dotenv
-    from src.db.core.db import Database, DATABASE_CONFIG
+    from src.db.core.db import Database
 
-    return DATABASE_CONFIG, Database, alt, load_dotenv, mo, pd
+    return Database, alt, load_dotenv, mo, pd
 
 
 @app.cell
@@ -98,8 +98,8 @@ def _(load_dotenv):
 
 
 @app.cell
-def _(DATABASE_CONFIG, Database):
-    db = Database(DATABASE_CONFIG)
+def _(Database):
+    db = Database()
     db.connect()
     return (db,)
 

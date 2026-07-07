@@ -1,23 +1,32 @@
+import os
+
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from src.db.core.db import Base, DATABASE_CONFIG
+from src.db.core.db import Base
 
 import src.db.models  # noqa: F401 — registers all models with Base.metadata
 
 
-def _build_url(cfg: dict) -> str | None:
-    if not all(cfg.get(k) for k in ("host", "database", "user", "password", "port")):
+def _build_url() -> str | None:
+    config = {
+        "host": os.getenv("DB_HOST", ""),
+        "database": os.getenv("DB_NAME", ""),
+        "user": os.getenv("DB_USER", ""),
+        "password": os.getenv("DB_PASSWORD", ""),
+        "port": os.getenv("DB_PORT", ""),
+    }
+    if not all(config.get(k) for k in ("host", "database", "user", "password", "port")):
         return None
     return (
-        f"postgresql://{cfg['user']}:{cfg['password']}"
-        f"@{cfg['host']}:{cfg['port']}/{cfg['database']}"
+        f"postgresql://{config['user']}:{config['password']}"
+        f"@{config['host']}:{config['port']}/{config['database']}"
     )
 
 
 @pytest.fixture(scope="session")
 def db_engine():
-    url = _build_url(DATABASE_CONFIG)
+    url = _build_url()
     if not url:
         pytest.skip("DB connection params not set — skipping integration tests")
 

@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from src.db.core.db import Database, DATABASE_CONFIG
+from src.db.core.db import Database
 from src.db.repositories.api_repository import ApiRepository
 import src.db.models  # noqa: F401 — registers all models with Base.metadata before create_all
 
@@ -11,7 +11,7 @@ class ApiService:
 
 @contextmanager
 def get_service():
-    db = Database(DATABASE_CONFIG)
+    db = Database()
     db.connect()
     session = db.get_session()
 
