@@ -14,6 +14,6 @@ COPY . .
 
 ENV PATH="/usr/app/.venv/bin:$PATH"
 
-WORKDIR /usr/app/dbt
+WORKDIR /usr/app/dbt/dbt
 
 CMD ["dbt", "build"]
