@@ -8,7 +8,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 
 # Force uv to use the container Python
-RUN uv sync --frozen --python /usr/local/bin/python
+RUN uv sync --frozen
 
 COPY . .
 
