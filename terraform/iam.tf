@@ -7,7 +7,7 @@ resource "google_service_account" "run_jobs" {
   account_id   = "cloud-run-jobs"
   display_name = "Runtime SA for dbt/ingest Cloud Run Jobs"
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_secret_manager_secret_iam_member" "run_jobs_db_secrets" {
@@ -34,7 +34,7 @@ resource "google_project_iam_member" "cloudbuild_artifact_writer" {
   role    = "roles/artifactregistry.writer"
   member  = local.cloudbuild_sa
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_project_iam_member" "cloudbuild_run_developer" {
@@ -42,7 +42,7 @@ resource "google_project_iam_member" "cloudbuild_run_developer" {
   role    = "roles/run.developer"
   member  = local.cloudbuild_sa
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_service_account_iam_member" "cloudbuild_act_as_run_jobs" {

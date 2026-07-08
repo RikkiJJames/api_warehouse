@@ -10,7 +10,7 @@ resource "google_secret_manager_secret" "db" {
     auto {}
   }
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_secret_manager_secret" "ingest" {
@@ -23,5 +23,5 @@ resource "google_secret_manager_secret" "ingest" {
     auto {}
   }
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }

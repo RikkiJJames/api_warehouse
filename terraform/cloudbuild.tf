@@ -16,7 +16,7 @@ resource "google_cloudbuildv2_repository" "api_warehouse" {
   parent_connection = local.github_connection_path
   remote_uri        = "https://github.com/${var.github_owner}/${var.github_repo}.git"
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_cloudbuild_trigger" "dbt" {

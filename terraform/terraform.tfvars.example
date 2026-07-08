@@ -3,4 +3,5 @@ billing_account_id  = "XXXXXX-XXXXXX-XXXXXX"
 region              = "europe-west2"
 github_owner        = "rikkijames"
 github_repo         = "api_warehouse"
-# github_connection_name = "github-connection" # only if you named it something else
+github_connection_name = "github-connection" # only if you named it something else
+job_deletion_protection = false

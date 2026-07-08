@@ -36,7 +36,7 @@ resource "google_cloud_run_v2_job" "dbt" {
     ignore_changes = [template[0].template[0].containers]
   }
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_cloud_run_v2_job" "ingest" {
@@ -73,5 +73,5 @@ resource "google_cloud_run_v2_job" "ingest" {
     ignore_changes = [template[0].template[0].containers]
   }
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }

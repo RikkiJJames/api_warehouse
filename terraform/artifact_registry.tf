@@ -5,5 +5,5 @@ resource "google_artifact_registry_repository" "images" {
   format        = "DOCKER"
   description   = "Container images for api_warehouse (dbt, ingest)"
 
-  depends_on = [google_project_service.apis]
+  depends_on = [time_sleep.wait_for_apis]
 }
