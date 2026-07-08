@@ -7,6 +7,8 @@ resource "google_cloud_run_v2_job" "dbt" {
   name     = "api-warehouse-dbt"
   location = var.region
 
+  deletion_protection = var.job_deletion_protection
+
   template {
     template {
       service_account = google_service_account.run_jobs.email
@@ -41,6 +43,8 @@ resource "google_cloud_run_v2_job" "ingest" {
   project  = local.project
   name     = "api-warehouse-ingest"
   location = var.region
+
+  deletion_protection = var.job_deletion_protection
 
   template {
     template {

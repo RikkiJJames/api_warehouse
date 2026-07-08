@@ -14,7 +14,7 @@ output "cloud_run_jobs" {
 }
 
 output "cloudbuild_connection_status_check" {
-  value = "gcloud builds connections describe ${google_cloudbuildv2_connection.github.name} --region=${var.region} --project=${local.project}"
+  value = "gcloud builds connections describe ${var.github_connection_name} --region=${var.region} --project=${local.project}"
 }
 
 output "runtime_service_account" {

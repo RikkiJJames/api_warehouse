@@ -15,6 +15,12 @@ variable "billing_account_id" {
   sensitive   = true
 }
 
+variable "job_deletion_protection" {
+  description = "Whether the Cloud Run Jobs block terraform destroy/apply from deleting them. Defaults to false since Cloud Build owns the real image/config after the first deploy anyway."
+  type        = bool
+  default     = false
+}
+
 variable "region" {
   description = "Default region for Artifact Registry, Cloud Run and Cloud Build resources."
   type        = string
@@ -38,23 +44,14 @@ variable "branch_pattern" {
   default     = "^main$"
 }
 
-variable "github_app_installation_id" {
+variable "github_connection_name" {
   description = <<-EOT
-    Installation ID of the "Google Cloud Build" GitHub App on your repo/org.
-    Install it at https://github.com/apps/google-cloud-build first, then read
-    the installation ID from the URL (github.com/settings/installations/<ID>).
+    Name of the Cloud Build GitHub connection, created out-of-band via:
+      gcloud builds connections create github <name> --region=<region> --project=<project_id>
+    Terraform only reads this connection (data source), it doesn't create it.
   EOT
   type        = string
-}
-
-variable "github_token" {
-  description = <<-EOT
-    A GitHub personal access token (classic, repo scope) used once to
-    authorize the Cloud Build <-> GitHub connection. Stored in Secret Manager,
-    not required after the connection reaches a CONNECTED state.
-  EOT
-  type        = string
-  sensitive   = true
+  default     = "github-connection"
 }
 
 variable "db_secret_names" {

@@ -1,59 +1,22 @@
-# --- One-time GitHub App authorization -------------------------------------
-# Prerequisite (manual, can't be scripted by Google):
-#   1. Install https://github.com/apps/google-cloud-build on this repo/org.
-#   2. Create a classic GitHub PAT with `repo` scope, pass it as var.github_token.
-# After `terraform apply`, check the connection status:
-#   gcloud builds connections describe github-connection --region=<region> --project=<project_id>
-# If it shows PENDING_USER_OAUTH, open the actionUri it prints and finish the
-# OAuth handshake in the browser once.
-
-resource "google_secret_manager_secret" "github_token" {
-  project   = local.project
-  secret_id = "github-token"
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.apis]
-}
-
-resource "google_secret_manager_secret_version" "github_token" {
-  secret      = google_secret_manager_secret.github_token.id
-  secret_data = var.github_token
-}
-
-# Cloud Build's 2nd-gen robot SA needs to read the PAT.
-resource "google_secret_manager_secret_iam_member" "github_token_accessor" {
-  project   = local.project
-  secret_id = google_secret_manager_secret.github_token.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:service-${google_project.this.number}@gcp-sa-cloudbuild.iam.gserviceaccount.com"
-
-  depends_on = [google_project_service.apis]
-}
-
-resource "google_cloudbuildv2_connection" "github" {
-  project  = local.project
-  location = var.region
-  name     = "github-connection"
-
-  github_config {
-    app_installation_id = var.github_app_installation_id
-    authorizer_credential {
-      oauth_token_secret_version = google_secret_manager_secret_version.github_token.id
-    }
-  }
-
-  depends_on = [google_secret_manager_secret_iam_member.github_token_accessor]
+# --- GitHub connection -------------------------------------------------------
+# Created out-of-band (one-time, interactive — gcloud drives the GitHub App
+# install + OAuth via Google's own OAuth client, no PAT needed):
+#   gcloud builds connections create github ${var.github_connection_name} \
+#     --region=${var.region} --project=${var.project_id}
+# The google provider has no data source for this resource type, so we build
+# its resource path directly instead of referencing/managing it in Terraform.
+locals {
+  github_connection_path = "projects/${local.project}/locations/${var.region}/connections/${var.github_connection_name}"
 }
 
 resource "google_cloudbuildv2_repository" "api_warehouse" {
   project           = local.project
   location          = var.region
   name              = var.github_repo
-  parent_connection = google_cloudbuildv2_connection.github.name
+  parent_connection = local.github_connection_path
   remote_uri        = "https://github.com/${var.github_owner}/${var.github_repo}.git"
+
+  depends_on = [google_project_service.apis]
 }
 
 resource "google_cloudbuild_trigger" "dbt" {

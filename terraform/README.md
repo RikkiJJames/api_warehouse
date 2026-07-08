@@ -7,36 +7,47 @@ Provisions a new GCP project with:
   `gcloud run jobs update` the corresponding job
 - Secret Manager containers for DB + API creds (values NOT set by Terraform)
 
-## One-time manual prerequisites
+## Apply (two phases)
 
-1. `gcloud auth application-default login` (Terraform runs as you).
-2. You need `roles/billing.user` on the target billing account and permission
-   to create projects (e.g. `roles/resourcemanager.projectCreator`).
-3. Install the [Google Cloud Build GitHub App](https://github.com/apps/google-cloud-build)
-   on `github_owner/github_repo`. Grab the installation ID from the URL at
-   `github.com/settings/installations/<ID>`.
-4. Create a classic GitHub PAT with `repo` scope — used once to bootstrap the
-   Cloud Build <-> GitHub connection, passed as `github_token`.
+The GitHub connection is created out-of-band via `gcloud`, which needs the
+project and Cloud Build API to already exist — so this is a two-step apply.
 
-## Apply
+1. `gcloud auth application-default login` (Terraform runs as you). You need
+   `roles/billing.user` on the target billing account and permission to
+   create projects (e.g. `roles/resourcemanager.projectCreator`).
 
-```
-cd terraform
-cp terraform.tfvars.example terraform.tfvars   # fill in real values, don't commit
-terraform init
-terraform apply
-```
+2. Fill in vars and create just the project + APIs:
+   ```
+   cd terraform
+   cp terraform.tfvars.example terraform.tfvars   # fill in real values, don't commit
+   terraform init
+   terraform apply -target=google_project.this -target=google_project_service.apis
+   ```
 
-After apply, check the GitHub connection — it often needs one more manual
-OAuth click the first time:
+3. Create the Cloud Build <-> GitHub connection interactively — this drives
+   the GitHub App install + OAuth via Google's own OAuth client, so **no PAT
+   is needed**:
+   ```
+   gcloud builds connections create github github-connection \
+     --region=<region> --project=<project_id>
+   ```
+   Follow the printed link in your browser once (install the GitHub App on
+   `github_owner/github_repo`, authorize). Confirm it's connected:
+   ```
+   gcloud builds connections describe github-connection \
+     --region=<region> --project=<project_id>
+   ```
+   It should show no pending OAuth step.
 
-```
-terraform output cloudbuild_connection_status_check   # prints the gcloud command
-```
-
-If the connection is `PENDING_USER_OAUTH`, open the `actionUri` it prints and
-finish the flow in your browser once. Re-run `terraform apply` afterwards if
-the repository/trigger resources failed to create.
+4. Apply everything else. Terraform doesn't manage the connection resource
+   itself (the provider has no way to read it back without a token) — it just
+   points `google_cloudbuildv2_repository.parent_connection` at the
+   connection's resource path built from `github_connection_name`/`region`,
+   and manages the repository link, triggers, Artifact Registry, secrets, and
+   Cloud Run Jobs on top of it:
+   ```
+   terraform apply
+   ```
 
 ## Populate secrets
 
