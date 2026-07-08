@@ -4,7 +4,7 @@ with source as (
 
 select
     id,
-    history_id,
+    coalesce(history_id, id) as history_id,
     coalesce(watched_at, timestamp '1970-01-01') as watched_at,
     (movie_ids->>'trakt')::int     as trakt_movie_id,
     (movie_ids->>'tmdb')::int      as tmdb_id,
