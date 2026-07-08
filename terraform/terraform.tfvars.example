@@ -1,0 +1,7 @@
+project_id                 = "api-warehouse-prod"
+billing_account_id         = "XXXXXX-XXXXXX-XXXXXX"
+region                     = "us-central1"
+github_owner               = "rikkijjames"
+github_repo                = "api_warehouse"
+github_app_installation_id = "12345678"
+github_token                = "ghp_xxx" # better: pass with -var or TF_VAR_github_token env var, don't commit

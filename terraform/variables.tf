@@ -1,0 +1,81 @@
+variable "project_id" {
+  description = "GCP project ID to create (must be globally unique, 6-30 chars, lowercase/digits/hyphens)."
+  type        = string
+}
+
+variable "project_name" {
+  description = "Human-readable project display name."
+  type        = string
+  default     = null
+}
+
+variable "billing_account_id" {
+  description = "Billing account ID to attach the new project to (format XXXXXX-XXXXXX-XXXXXX)."
+  type        = string
+  sensitive   = true
+}
+
+variable "region" {
+  description = "Default region for Artifact Registry, Cloud Run and Cloud Build resources."
+  type        = string
+  default     = "us-central1"
+}
+
+variable "github_owner" {
+  description = "GitHub org/user that owns the repo (e.g. rikkijames)."
+  type        = string
+}
+
+variable "github_repo" {
+  description = "GitHub repository name."
+  type        = string
+  default     = "api_warehouse"
+}
+
+variable "branch_pattern" {
+  description = "Regex of branches that trigger a build/deploy."
+  type        = string
+  default     = "^main$"
+}
+
+variable "github_app_installation_id" {
+  description = <<-EOT
+    Installation ID of the "Google Cloud Build" GitHub App on your repo/org.
+    Install it at https://github.com/apps/google-cloud-build first, then read
+    the installation ID from the URL (github.com/settings/installations/<ID>).
+  EOT
+  type        = string
+}
+
+variable "github_token" {
+  description = <<-EOT
+    A GitHub personal access token (classic, repo scope) used once to
+    authorize the Cloud Build <-> GitHub connection. Stored in Secret Manager,
+    not required after the connection reaches a CONNECTED state.
+  EOT
+  type        = string
+  sensitive   = true
+}
+
+variable "db_secret_names" {
+  description = "Secret Manager secret names for dbt/ingest DB connection env vars (values populated out-of-band)."
+  type        = list(string)
+  default     = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+}
+
+variable "ingest_secret_names" {
+  description = "Secret Manager secret names for ingest-only API credentials (values populated out-of-band)."
+  type        = list(string)
+  default = [
+    "SPORTS_API_KEY",
+    "SPOTIFY_CLIENT_ID",
+    "SPOTIFY_CLIENT_SECRET",
+    "SPOTIFY_REFRESH_TOKEN",
+    "SPOTIFY_REDIRECT_URL",
+    "HARDCOVER_API_TOKEN",
+    "TRAKT_CLIENT_ID",
+    "TRAKT_CLIENT_SECRET",
+    "TRAKT_REFRESH_TOKEN",
+    "TRAKT_REDIRECT_URL",
+  ]
+}

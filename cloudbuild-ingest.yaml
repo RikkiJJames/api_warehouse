@@ -11,10 +11,25 @@ steps:
     args:
       - build
       - -t
-      - gcr.io/$PROJECT_ID/api-warehouse-ingest:$COMMIT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-ingest:$COMMIT_SHA
       - -f
       - ingest/Dockerfile
       - ingest
 
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - update
+      - ${_JOB_NAME}
+      - --region=${_REGION}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-ingest:$COMMIT_SHA
+
 images:
-  - gcr.io/$PROJECT_ID/api-warehouse-ingest:$COMMIT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-ingest:$COMMIT_SHA
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: api-warehouse
+  _JOB_NAME: api-warehouse-ingest
