@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: hardcover
+    schema: hardcover
+    description: Hardcover personal book tracking data
+    tables:
+      - name: read_books
+        description: Books marked as read, with personal rating and read dates
+      - name: currently_reading
+        description: Books currently being read
+      - name: want_to_read
+        description: Books on the want-to-read list

@@ -18,6 +18,16 @@ class RateLimitExceeded(Exception):
         super().__init__(f"Rate limited on {endpoint} (retry_after={retry_after}s)")
 
 
+class GraphQLError(Exception):
+    """Raised when a GraphQL response's top-level `errors` array is non-empty
+    — GraphQL APIs return HTTP 200 even when the query itself failed, so this
+    has to be checked explicitly instead of relying on raise_for_status()."""
+
+    def __init__(self, endpoint: str, errors: list):
+        self.errors = errors
+        super().__init__(f"GraphQL errors from {endpoint or '<base_url>'}: {errors}")
+
+
 class ExecutionClient:
     def __init__(
         self,
@@ -105,3 +115,44 @@ class ExecutionClient:
                 "item_count": int(response.headers.get("X-Pagination-Item-Count", 0)),
             }
             return response.json()
+
+    async def post_endpoint(
+        self,
+        endpoint: str,
+        query: str,
+        variables: dict | None = None,
+        max_retries: int = 3,
+        max_retry_after: float = 60,
+    ) -> dict:
+        logger.info(f"POST {endpoint or self.base_url}")
+
+        payload = {"query": query, "variables": variables or {}}
+
+        for attempt in range(max_retries + 1):
+            response = await self.client.post(endpoint, json=payload)
+
+            if response.status_code == 429:
+                retry_after = float(response.headers.get("Retry-After", 1))
+
+                if attempt >= max_retries or retry_after > max_retry_after:
+                    logger.warning(
+                        f"429 from {endpoint}; giving up "
+                        f"(retry_after={retry_after}s, attempt={attempt + 1}/{max_retries + 1})"
+                    )
+                    raise RateLimitExceeded(endpoint, retry_after)
+
+                logger.warning(
+                    f"429 from {endpoint}, retrying in {retry_after}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                await asyncio.sleep(retry_after)
+                continue
+
+            response.raise_for_status()
+            body = response.json()
+
+            if body.get("errors"):
+                raise GraphQLError(endpoint, body["errors"])
+
+            self._pagination = {"page_count": 1, "item_count": 0}
+            return body

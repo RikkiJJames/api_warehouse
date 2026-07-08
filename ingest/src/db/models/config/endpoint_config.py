@@ -26,6 +26,8 @@ class Endpoint(Base):
     )  # DB column to write to
     db_source_field: Mapped[str | None] = mapped_column(nullable=True)
     response_path: Mapped[str | None] = mapped_column(nullable=True)
+    method: Mapped[str] = mapped_column(default="GET", server_default="GET")
+    query: Mapped[str | None] = mapped_column(nullable=True)
 
 
 class EndpointParam(Base):

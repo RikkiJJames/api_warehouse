@@ -50,3 +50,17 @@ endpoints:
     is_active: true
     db_target: trakt.watchlist_shows
     response_path: null
+
+  - logical_name: movie_ratings
+    path_template: sync/ratings/movies
+    exec_order: 5
+    is_active: true
+    db_target: trakt.watched_movies
+    response_path: null
+
+  - logical_name: show_ratings
+    path_template: sync/ratings/shows
+    exec_order: 6
+    is_active: true
+    db_target: trakt.watched_episodes
+    response_path: null

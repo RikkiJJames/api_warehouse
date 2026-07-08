@@ -24,6 +24,8 @@ class ApiBootstrapper:
                 db_target_column=ep.db_target_column,
                 db_source_field=ep.db_source_field,
                 response_path=ep.response_path,
+                method=ep.method,
+                query=ep.query,
             )
 
             for param in ep.params:

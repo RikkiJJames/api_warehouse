@@ -1,0 +1,98 @@
+version: 2
+
+models:
+  # ── Dimensions ────────────────────────────────────────────────────────────
+
+  - name: dim_books
+    description: Book attributes — one row per unique book seen across read/currently-reading/want-to-read
+    columns:
+      - name: book_id
+        description: Hardcover book ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: title
+        description: Book title
+        data_tests:
+          - not_null
+      - name: pages
+        description: Page count
+      - name: release_date
+        description: Book release date
+
+  # ── Facts ─────────────────────────────────────────────────────────────────
+
+  - name: fct_reading_history
+    description: One row per finished book, ordered by most recently finished
+    columns:
+      - name: user_book_id
+        description: Hardcover user_book ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: book_id
+        description: FK to dim_books
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_books')
+              field: book_id
+      - name: title
+        description: Book title
+      - name: pages
+        description: Page count
+      - name: my_rating
+        description: Personal rating (0–5)
+      - name: read_started_at
+        description: Datetime the most recent read was started
+      - name: read_finished_at
+        description: Datetime the book was finished
+
+  - name: fct_reading_list
+    description: Unified fact for books not yet finished — currently reading and want-to-read, ordered by most recent status change
+    columns:
+      - name: user_book_id
+        description: Hardcover user_book ID
+        data_tests:
+          - unique
+          - not_null
+      - name: status
+        description: Reading list status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['currently_reading', 'want_to_read']
+      - name: status_at
+        description: Datetime the current read was started (currently_reading) or the book was added to the list (want_to_read)
+      - name: book_id
+        description: FK to dim_books
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_books')
+              field: book_id
+      - name: title
+        description: Book title
+      - name: pages
+        description: Page count
+      - name: release_date
+        description: Book release date
+
+  - name: fct_reading_stats
+    description: Yearly reading stats derived from finished books
+    columns:
+      - name: year
+        description: Calendar year the books were finished
+        data_tests:
+          - unique
+          - not_null
+      - name: books_read
+        description: Number of books finished that year
+        data_tests:
+          - not_null
+      - name: pages_read
+        description: Total pages read that year
+      - name: avg_rating
+        description: Average personal rating for books finished that year
+      - name: avg_pages_per_book
+        description: Average page count per book finished that year

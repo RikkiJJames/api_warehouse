@@ -1,0 +1,79 @@
+version: 2
+
+models:
+  - name: stg_read_books
+    description: Books marked as read, with personal rating and finish date
+    columns:
+      - name: user_book_id
+        description: Hardcover user_book ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: book_id
+        description: Hardcover book ID
+        data_tests:
+          - not_null
+      - name: title
+        description: Book title
+        data_tests:
+          - not_null
+      - name: pages
+        description: Page count
+      - name: release_date
+        description: Book release date
+      - name: my_rating
+        description: Personal rating (0–5)
+      - name: read_started_at
+        description: Datetime the most recent read was started
+      - name: read_finished_at
+        description: Datetime the book was finished
+      - name: updated_at
+        description: Datetime this user_book record was last updated in Hardcover
+
+  - name: stg_currently_reading
+    description: Books currently being read
+    columns:
+      - name: user_book_id
+        description: Hardcover user_book ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: book_id
+        description: Hardcover book ID
+        data_tests:
+          - not_null
+      - name: title
+        description: Book title
+        data_tests:
+          - not_null
+      - name: pages
+        description: Page count
+      - name: release_date
+        description: Book release date
+      - name: read_started_at
+        description: Datetime the current read was started
+      - name: updated_at
+        description: Datetime this user_book record was last updated in Hardcover
+
+  - name: stg_want_to_read
+    description: Books on the want-to-read list
+    columns:
+      - name: user_book_id
+        description: Hardcover user_book ID (primary key)
+        data_tests:
+          - unique
+          - not_null
+      - name: book_id
+        description: Hardcover book ID
+        data_tests:
+          - not_null
+      - name: title
+        description: Book title
+        data_tests:
+          - not_null
+      - name: pages
+        description: Page count
+      - name: release_date
+        description: Book release date
+      - name: created_at
+        description: Datetime added to the want-to-read list

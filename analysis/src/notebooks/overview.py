@@ -27,12 +27,11 @@ def _():
 
 
 @app.cell
-def _():
-    # import sys
-    # from pathlib import Path
-    # ROOT_DIR = Path.cwd().resolve()
-    # sys.path.insert(0, ROOT_DIR)
-    # ROOT_DIR
+def _(Path):
+    import sys
+    ROOT_DIR = Path.cwd().resolve()
+    sys.path.insert(0, ROOT_DIR)
+    ROOT_DIR
     return
 
 
@@ -106,18 +105,70 @@ def _(data):
 
 
 @app.cell
-def _(history_df, mo, track_df):
+def _(data, pd):
+    # An empty result set comes back with zero columns (pd.DataFrame([])), which
+    # breaks every downstream ["col"] lookup and Altair encoding — fall back to
+    # a correctly-typed empty frame so the Hardcover tabs render (empty) instead
+    # of erroring when no books have been synced/finished yet.
+    reading_history_df = data['reading_history']
+    if reading_history_df.empty:
+        reading_history_df = pd.DataFrame({
+            'user_book_id': pd.Series(dtype='int64'),
+            'book_id': pd.Series(dtype='int64'),
+            'title': pd.Series(dtype='object'),
+            'pages': pd.Series(dtype='float64'),
+            'my_rating': pd.Series(dtype='float64'),
+            'read_started_at': pd.Series(dtype='datetime64[ns]'),
+            'read_finished_at': pd.Series(dtype='datetime64[ns]'),
+        })
+    return (reading_history_df,)
+
+
+@app.cell
+def _(data, pd):
+    reading_list_df = data['reading_list']
+    if reading_list_df.empty:
+        reading_list_df = pd.DataFrame({
+            'user_book_id': pd.Series(dtype='int64'),
+            'status': pd.Series(dtype='object'),
+            'status_at': pd.Series(dtype='datetime64[ns]'),
+            'book_id': pd.Series(dtype='int64'),
+            'title': pd.Series(dtype='object'),
+            'pages': pd.Series(dtype='float64'),
+            'release_date': pd.Series(dtype='object'),
+        })
+    return (reading_list_df,)
+
+
+@app.cell
+def _(data, pd):
+    reading_stats_df = data['fct_reading_stats']
+    if reading_stats_df.empty:
+        reading_stats_df = pd.DataFrame({
+            'year': pd.Series(dtype='datetime64[ns]'),
+            'books_read': pd.Series(dtype='int64'),
+            'pages_read': pd.Series(dtype='int64'),
+            'avg_rating': pd.Series(dtype='float64'),
+            'avg_pages_per_book': pd.Series(dtype='float64'),
+        })
+    return (reading_stats_df,)
+
+
+@app.cell
+def _(history_df, mo, reading_history_df, track_df):
     overview_summary = mo.md(f"""
     **Spotify plays logged:** {len(track_df)}
     **Trakt items watched:** {len(history_df)}
+    **Hardcover books read:** {len(reading_history_df)}
     **Spotify tracked since:** {track_df['played_at'].min()}
     **Trakt tracked since:** {history_df['watched_at'].min()}
+    **Hardcover tracked since:** {reading_history_df['read_finished_at'].min()}
     """)
     return (overview_summary,)
 
 
 @app.cell
-def _(alt, history_df, mo, pd, track_df):
+def _(alt, history_df, mo, pd, reading_history_df, track_df):
     _spotify_daily = (
         track_df.assign(date=pd.to_datetime(track_df['played_at']).dt.date.astype(str))
         .groupby('date').size().reset_index(name='count').assign(source='Spotify')
@@ -126,7 +177,12 @@ def _(alt, history_df, mo, pd, track_df):
         history_df.assign(date=pd.to_datetime(history_df['watched_at']).dt.date.astype(str))
         .groupby('date').size().reset_index(name='count').assign(source='Trakt')
     )
-    _combined_daily = pd.concat([_spotify_daily, _trakt_daily], ignore_index=True)
+    _hardcover_daily = (
+        reading_history_df.dropna(subset=['read_finished_at'])
+        .assign(date=pd.to_datetime(reading_history_df['read_finished_at']).dt.date.astype(str))
+        .groupby('date').size().reset_index(name='count').assign(source='Hardcover')
+    )
+    _combined_daily = pd.concat([_spotify_daily, _trakt_daily, _hardcover_daily], ignore_index=True)
 
     combined_activity_chart = mo.ui.altair_chart(
         alt.Chart(_combined_daily).mark_line(point=True).encode(
@@ -134,7 +190,7 @@ def _(alt, history_df, mo, pd, track_df):
             y=alt.Y('count:Q', title='Events'),
             color=alt.Color('source:N', title='Source'),
             tooltip=['date', 'source', 'count'],
-        ).properties(title='Daily Activity — Spotify Plays vs. Trakt Watches', height=350)
+        ).properties(title='Daily Activity — Spotify Plays, Trakt Watches & Hardcover Finishes', height=350)
     )
     return (combined_activity_chart,)
 
@@ -250,7 +306,7 @@ def _(timedelta):
 @app.cell
 def _(mo, track_df):
     number_of_days_listened = (track_df['played_at'].max() - track_df['played_at'].min()).days
-    number_of_days = mo.ui.slider(1, number_of_days_listened, value=1, label="Number of Days")
+    number_of_days = mo.ui.slider(0, number_of_days_listened, value=0, label="Number of Days")
     return (number_of_days,)
 
 
@@ -551,7 +607,115 @@ def _(
 
 
 @app.cell
-def _(combined_activity_chart, mo, overview_summary, spotify_view, trakt_view):
+def _(mo):
+    book_sort = mo.ui.dropdown(
+        options={"Finished Date": "read_finished_at", "Rating": "my_rating", "Pages": "pages"},
+        value="Finished Date",
+        label="Sort by",
+    )
+    book_top_n = mo.ui.slider(5, 50, value=20, label="Top N")
+    return book_sort, book_top_n
+
+
+@app.cell
+def _(book_sort, book_top_n, reading_history_df):
+    top_books_df = (
+        reading_history_df[["title", "pages", "my_rating", "read_started_at", "read_finished_at"]]
+        .sort_values(book_sort.value, ascending=False)
+        .head(book_top_n.value)
+        .reset_index(drop=True)
+    )
+    return (top_books_df,)
+
+
+@app.cell
+def _(alt, mo, reading_history_df):
+    _agg = reading_history_df[["my_rating"]].dropna()
+    book_rating_hist = mo.ui.altair_chart(
+        alt.Chart(_agg).mark_bar().encode(
+            x=alt.X("my_rating:Q", bin=alt.Bin(step=0.5), title="Rating"),
+            y=alt.Y("count():Q", title="Books"),
+            tooltip=["count()"],
+        ).properties(title="Personal Rating Distribution", height=200)
+    )
+    return (book_rating_hist,)
+
+
+@app.cell
+def _(alt, mo, reading_stats_df):
+    reading_stats_chart = mo.ui.altair_chart(
+        alt.Chart(reading_stats_df).mark_bar().encode(
+            x=alt.X("year:T", title="Year"),
+            y=alt.Y("books_read:Q", title="Books Read"),
+            tooltip=["year", "books_read", "pages_read", "avg_rating"],
+        ).properties(title="Books Read per Year", height=250)
+    )
+    return (reading_stats_chart,)
+
+
+@app.cell
+def _(mo, reading_list_df):
+    reading_list_status_filter = mo.ui.multiselect(
+        options=sorted(reading_list_df["status"].unique().tolist()),
+        value=sorted(reading_list_df["status"].unique().tolist()),
+        label="Status",
+    )
+    return (reading_list_status_filter,)
+
+
+@app.cell
+def _(reading_list_df, reading_list_status_filter):
+    filtered_reading_list_df = (
+        reading_list_df[reading_list_df["status"].isin(reading_list_status_filter.value)]
+        [["status", "status_at", "title", "pages", "release_date"]]
+        .reset_index(drop=True)
+    )
+    return (filtered_reading_list_df,)
+
+
+@app.cell
+def _(
+    book_rating_hist,
+    book_sort,
+    book_top_n,
+    filtered_reading_list_df,
+    mo,
+    reading_list_status_filter,
+    reading_stats_chart,
+    reading_stats_df,
+    top_books_df,
+):
+    hardcover_view = mo.ui.tabs({
+        "Read Books": mo.vstack([
+            mo.md("## Top Books"),
+            mo.hstack([book_sort, book_top_n]),
+            top_books_df,
+            mo.md("## Rating Distribution"),
+            book_rating_hist,
+        ]),
+        "Reading List": mo.vstack([
+            mo.md("## Currently Reading & Want to Read"),
+            reading_list_status_filter,
+            filtered_reading_list_df,
+        ]),
+        "Stats": mo.vstack([
+            mo.md("## Books Read per Year"),
+            reading_stats_chart,
+            reading_stats_df,
+        ]),
+    })
+    return (hardcover_view,)
+
+
+@app.cell
+def _(
+    combined_activity_chart,
+    hardcover_view,
+    mo,
+    overview_summary,
+    spotify_view,
+    trakt_view,
+):
     mo.ui.tabs({
         "Overview": mo.vstack([
             overview_summary,
@@ -559,6 +723,7 @@ def _(combined_activity_chart, mo, overview_summary, spotify_view, trakt_view):
         ]),
         "Spotify": spotify_view,
         "Trakt": trakt_view,
+        "Hardcover": hardcover_view,
     })
     return
 

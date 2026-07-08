@@ -45,10 +45,18 @@ class ExecutionEngine:
     ):
         all_items = []
         limit = int((params or {}).get("limit", 50))
+        is_graphql = endpoint.get("method") == "POST"
 
         # First request
         logger.info("Retrieving Page 1")
-        raw = await self.api.get_endpoint(path, params=params)
+        if is_graphql:
+            # GraphQL variables are type-checked against the schema (Int vs
+            # String), unlike REST query params — limit/offset must be ints,
+            # not the raw string default_values config stores everything as.
+            variables = {**(params or {}), "limit": limit, "offset": int((params or {}).get("offset", 0))}
+            raw = await self.api.post_endpoint(path, query=endpoint["query"], variables=variables)
+        else:
+            raw = await self.api.get_endpoint(path, params=params)
         total_pages = self.api._pagination.get("page_count", 1)
         item_count = self.api._pagination.get("item_count", 0)
 
@@ -63,8 +71,25 @@ class ExecutionEngine:
         logger.info(f"Fetched {len(items)} items from {path} (page 1/{total_pages}, total={item_count})")
         self.storage.save(endpoint, endpoint["logical_name"], items, extra)
 
+        # Offset-based pagination (GraphQL, e.g. Hardcover): keep requesting
+        # while a full page came back, since there's no total-count/next-link
+        # signal to rely on generically across GraphQL APIs.
+        if is_graphql:
+            offset = limit
+            while len(items) == limit:
+                logger.info(f"Retrieving offset {offset}")
+                page_variables = {**(params or {}), "limit": limit, "offset": offset}
+                raw = await self.api.post_endpoint(path, query=endpoint["query"], variables=page_variables)
+                items = self.extractor.extract(raw, endpoint.get("response_path"))
+                if not items:
+                    break
+                all_items.extend(items)
+                logger.info(f"Fetched {len(items)} items from {path} (offset {offset})")
+                self.storage.save(endpoint, endpoint["logical_name"], items, extra)
+                offset += limit
+
         # Header-based pagination (Trakt): page param increments
-        if total_pages > 1:
+        elif total_pages > 1:
             for page in range(2, total_pages + 1):
                 logger.info(f"Retrieving Page {page}/{total_pages}")
                 raw = await self.api.get_endpoint(path, params={**(params or {}), "page": page})

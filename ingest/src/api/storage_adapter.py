@@ -1,4 +1,24 @@
 class StorageAdapter:
+    # Trakt's sync/ratings endpoints carry personal ratings/rated_at timestamps
+    # that can change after the fact — these are applied as updates onto rows
+    # already written by the corresponding watched_* endpoint, not inserted.
+    RATING_HANDLERS = {
+        "movie_ratings": "update_movie_ratings",
+        "show_ratings": "update_show_ratings",
+    }
+
+    # Re-running history endpoints must be able to correct a watched_at that
+    # was edited in Trakt after the original event was ingested, so these
+    # upsert on the endpoint's unique id instead of ON CONFLICT DO NOTHING.
+    UPSERT_CONFIG = {
+        "watched_movies": ("history_id", ["watched_at"]),
+        "watched_episodes": ("history_id", ["watched_at"]),
+        # Hardcover ratings/finish dates can change after a book is first
+        # synced (e.g. correcting a rating, or finishing a re-read), so
+        # re-ingesting the same user_book_id must update these in place.
+        "read_books": ("user_book_id", ["my_rating", "read_started_at", "read_finished_at"]),
+    }
+
     def __init__(self, registry, api_id=None):
         self.registry = registry
         self.api_id = api_id
@@ -29,6 +49,11 @@ class StorageAdapter:
                 values,
                 extra_fields=extra or None,
             )
+        elif logical_name in self.RATING_HANDLERS:
+            getattr(self.registry, self.RATING_HANDLERS[logical_name])(db_target, records)
+        elif logical_name in self.UPSERT_CONFIG:
+            conflict_column, update_columns = self.UPSERT_CONFIG[logical_name]
+            self.registry.upsert_records(db_target, records, conflict_column, update_columns)
         else:
             enriched = [
                 {**r, **extra} if isinstance(r, dict) else r

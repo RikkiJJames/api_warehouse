@@ -45,3 +45,6 @@ class WatchedEpisodes(Base):
     show_first_aired: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     show_aired_episodes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     show_airs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    show_my_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    show_my_rated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

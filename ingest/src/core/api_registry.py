@@ -41,6 +41,23 @@ class ApiRegistry:
     def save_records(self, schema_table: str, records: list[dict]) -> None:
         self.service.repository.save_records(schema_table, records)
 
+    def upsert_records(
+        self,
+        schema_table: str,
+        records: list[dict],
+        conflict_column: str,
+        update_columns: list[str],
+    ) -> None:
+        self.service.repository.upsert_records(
+            schema_table, records, conflict_column, update_columns
+        )
+
+    def update_movie_ratings(self, schema_table: str, records: list[dict]) -> None:
+        self.service.repository.update_movie_ratings(schema_table, records)
+
+    def update_show_ratings(self, schema_table: str, records: list[dict]) -> None:
+        self.service.repository.update_show_ratings(schema_table, records)
+
     def get_source_values(
         self, schema_table: str, column: str, distinct: bool = False
     ) -> list[str]:

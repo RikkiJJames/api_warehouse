@@ -9,7 +9,10 @@ class ResponseExtractor:
         if not isinstance(response, dict):
             return []
         if response_path:
-            response = response.get(response_path)
+            for key in response_path.split("."):
+                if not isinstance(response, dict):
+                    return []
+                response = response.get(key)
             if isinstance(response, list):
                 return response
             if isinstance(response, dict):

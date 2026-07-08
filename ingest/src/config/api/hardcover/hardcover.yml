@@ -1,0 +1,109 @@
+name: hardcover
+description: Hardcover book tracking data
+base_url: https://api.hardcover.app/v1/graphql
+
+api_config:
+  - parameter_name: api_token
+    parameter_value: !env_optional HARDCOVER_API_TOKEN
+
+endpoints:
+  - logical_name: read_books
+    path_template: ""
+    exec_order: 1
+    is_active: true
+    db_target: hardcover.read_books
+    response_path: data.user_books
+    method: POST
+    query: |
+      query ReadBooks($user_id: Int!, $limit: Int!, $offset: Int!) {
+        user_books(
+          where: {user_id: {_eq: $user_id}, status_id: {_eq: 3}}
+          order_by: {id: asc}
+          limit: $limit
+          offset: $offset
+        ) {
+          user_book_id: id
+          my_rating: rating
+          updated_at
+          book {
+            id
+            title
+            pages
+            release_date
+          }
+          read: user_book_reads(order_by: {finished_at: desc}, limit: 1) {
+            started_at
+            finished_at
+          }
+        }
+      }
+    params:
+      - param_name: limit
+        default_value: "50"
+      - param_name: offset
+        default_value: "0"
+
+  - logical_name: currently_reading
+    path_template: ""
+    exec_order: 2
+    is_active: true
+    db_target: hardcover.currently_reading
+    response_path: data.user_books
+    method: POST
+    query: |
+      query CurrentlyReading($user_id: Int!, $limit: Int!, $offset: Int!) {
+        user_books(
+          where: {user_id: {_eq: $user_id}, status_id: {_eq: 2}}
+          order_by: {id: asc}
+          limit: $limit
+          offset: $offset
+        ) {
+          user_book_id: id
+          updated_at
+          book {
+            id
+            title
+            pages
+            release_date
+          }
+          read: user_book_reads(order_by: {started_at: desc}, limit: 1) {
+            started_at
+          }
+        }
+      }
+    params:
+      - param_name: limit
+        default_value: "50"
+      - param_name: offset
+        default_value: "0"
+
+  - logical_name: want_to_read
+    path_template: ""
+    exec_order: 3
+    is_active: true
+    db_target: hardcover.want_to_read
+    response_path: data.user_books
+    method: POST
+    query: |
+      query WantToRead($user_id: Int!, $limit: Int!, $offset: Int!) {
+        user_books(
+          where: {user_id: {_eq: $user_id}, status_id: {_eq: 1}}
+          order_by: {id: asc}
+          limit: $limit
+          offset: $offset
+        ) {
+          user_book_id: id
+          created_at
+          book {
+            id
+            title
+            pages
+            release_date
+          }
+        }
+      }
+    params:
+      - param_name: limit
+        default_value: "50"
+      - param_name: offset
+        default_value: "0"

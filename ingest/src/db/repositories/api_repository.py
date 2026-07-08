@@ -16,6 +16,9 @@ def flatten_record(record: dict) -> dict:
 
     '#text' subkeys are normalised to 'name': {'artist': {'#text': 'X'}} → {'artist_name': 'X'}.
     Lists of dicts with an 'id' field: {'artists': [{'id': 'x'}]} → {'artist_id': 'x'}.
+    A single-item list of dicts with no 'id' — e.g. a GraphQL one-to-many
+    relation aliased down to its latest row, {'read': [{'started_at': 'x'}]}
+    — flattens like a nested dict instead: {'read_started_at': 'x'}.
     """
     flat: dict = {}
     for k, v in record.items():
@@ -26,6 +29,9 @@ def flatten_record(record: dict) -> dict:
         elif isinstance(v, list) and v and isinstance(v[0], dict) and "id" in v[0]:
             singular = k[:-1] if k.endswith("s") else k
             flat[f"{singular}_id"] = v[0]["id"]
+        elif isinstance(v, list) and len(v) == 1 and isinstance(v[0], dict):
+            for nk, nv in v[0].items():
+                flat[f"{k}_{nk}"] = nv
         else:
             flat[k] = v
     return flat
@@ -95,6 +101,8 @@ class ApiRepository:
         db_target_column: str | None = None,
         db_source_field: str | None = None,
         response_path: str | None = None,
+        method: str = "GET",
+        query: str | None = None,
     ) -> Endpoint:
         logger.info(f"Upserting endpoint for API {api_id}: {logical_name}")
         stmt = select(Endpoint).where(
@@ -109,6 +117,8 @@ class ApiRepository:
             ep.db_target_column = db_target_column
             ep.db_source_field = db_source_field
             ep.response_path = response_path
+            ep.method = method
+            ep.query = query
             self.session.commit()
             return ep
         ep = Endpoint(
@@ -121,6 +131,8 @@ class ApiRepository:
             db_target_column=db_target_column,
             db_source_field=db_source_field,
             response_path=response_path,
+            method=method,
+            query=query,
         )
         self.session.add(ep)
         self.session.flush()
@@ -188,6 +200,8 @@ class ApiRepository:
                 "db_target_column": r.db_target_column,
                 "db_source_field": r.db_source_field,
                 "response_path": r.response_path,
+                "method": r.method,
+                "query": r.query,
             }
             for r in rows
         ]
@@ -233,15 +247,8 @@ class ApiRepository:
             self.session.execute(stmt, params)
         self.session.commit()
 
-    def save_records(self, schema_table: str, records: list[dict]) -> None:
-        """Insert a list of dicts into a target table, skipping unknown fields.
-
-        Fields named 'id' in the source are remapped to 'fighter_id' if that
-        column exists on the target table.
-        """
-        if not records:
-            return
-        schema, table = schema_table.split(".", 1)
+    def _column_info(self, schema: str, table: str) -> tuple[set[str], str | None]:
+        """Return the target table's column names and its preferred 'id' remap column."""
         col_rows = self.session.execute(
             text(
                 "SELECT column_name FROM information_schema.columns "
@@ -255,18 +262,34 @@ class ApiRepository:
             (col for col in valid_cols if col.endswith("_id") and col != "api_id"),
             None,
         )
+        return valid_cols, id_remap
+
+    def _build_row(self, record: dict, valid_cols: set[str], id_remap: str | None) -> dict:
+        """Flatten a record and keep only fields that map to a known column."""
+        flat = flatten_record(record)
+        row = {}
+        for k, v in flat.items():
+            key = id_remap if (k == "id" and id_remap) else k
+            if key in valid_cols:
+                row[key] = json.dumps(v) if isinstance(v, (dict, list)) else v
+        return row
+
+    def save_records(self, schema_table: str, records: list[dict]) -> None:
+        """Insert a list of dicts into a target table, skipping unknown fields.
+
+        Fields named 'id' in the source are remapped to 'fighter_id' if that
+        column exists on the target table.
+        """
+        if not records:
+            return
+        schema, table = schema_table.split(".", 1)
+        valid_cols, id_remap = self._column_info(schema, table)
 
         logger.info(f"Saving {len(records)} records to {schema_table}")
         for record in records:
             if record is None:
                 continue
-            flat = flatten_record(record)
-
-            row = {}
-            for k, v in flat.items():
-                key = id_remap if (k == "id" and id_remap) else k
-                if key in valid_cols:
-                    row[key] = json.dumps(v) if isinstance(v, (dict, list)) else v
+            row = self._build_row(record, valid_cols, id_remap)
             if not row:
                 continue
             col_list = ", ".join(f'"{c}"' for c in row)
@@ -280,6 +303,116 @@ class ApiRepository:
             except Exception as e:
                 self.session.rollback()
                 logger.warning(f"Skipped record in {schema_table}: {e}")
+        self.session.commit()
+
+    def upsert_records(
+        self,
+        schema_table: str,
+        records: list[dict],
+        conflict_column: str,
+        update_columns: list[str],
+    ) -> None:
+        """Insert records, updating update_columns in place when conflict_column
+        already exists — used where a source event's id is stable but fields
+        like a watched/rated timestamp can be corrected after the fact.
+        """
+        if not records:
+            return
+        schema, table = schema_table.split(".", 1)
+        valid_cols, id_remap = self._column_info(schema, table)
+
+        logger.info(f"Upserting {len(records)} records into {schema_table} on {conflict_column}")
+        for record in records:
+            if record is None:
+                continue
+            row = self._build_row(record, valid_cols, id_remap)
+            if conflict_column not in row:
+                continue
+
+            col_list = ", ".join(f'"{c}"' for c in row)
+            param_list = ", ".join(f":{c}" for c in row)
+            update_set = ", ".join(
+                f'"{c}" = EXCLUDED."{c}"' for c in update_columns if c in row
+            )
+            conflict_clause = (
+                f'DO UPDATE SET {update_set}' if update_set else "DO NOTHING"
+            )
+            stmt = text(
+                f'INSERT INTO "{schema}"."{table}" ({col_list}) '
+                f'VALUES ({param_list}) '
+                f'ON CONFLICT ("{conflict_column}") {conflict_clause}'
+            )
+            try:
+                self.session.execute(stmt, row)
+            except Exception as e:
+                self.session.rollback()
+                logger.warning(f"Skipped record in {schema_table}: {e}")
+        self.session.commit()
+
+    def update_movie_ratings(self, schema_table: str, records: list[dict]) -> None:
+        """Apply personal ratings from Trakt's sync/ratings/movies onto the
+        matching watched_movies rows, keyed by the movie's Trakt id.
+        """
+        if not records:
+            return
+        schema, table = schema_table.split(".", 1)
+        logger.info(f"Updating {len(records)} movie ratings in {schema_table}")
+        stmt = text(
+            f'UPDATE "{schema}"."{table}" '
+            f'SET my_rating = :rating, my_rated_at = :rated_at '
+            f"WHERE (movie_ids->>'trakt')::bigint = :trakt_id"
+        )
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            trakt_id = ((record.get("movie") or {}).get("ids") or {}).get("trakt")
+            if trakt_id is None:
+                continue
+            try:
+                self.session.execute(
+                    stmt,
+                    {
+                        "rating": record.get("rating"),
+                        "rated_at": record.get("rated_at"),
+                        "trakt_id": trakt_id,
+                    },
+                )
+            except Exception as e:
+                self.session.rollback()
+                logger.warning(f"Skipped movie rating update in {schema_table}: {e}")
+        self.session.commit()
+
+    def update_show_ratings(self, schema_table: str, records: list[dict]) -> None:
+        """Apply personal ratings from Trakt's sync/ratings/shows onto every
+        watched_episodes row for the matching show, keyed by the show's Trakt id.
+        """
+        if not records:
+            return
+        schema, table = schema_table.split(".", 1)
+        logger.info(f"Updating {len(records)} show ratings in {schema_table}")
+        stmt = text(
+            f'UPDATE "{schema}"."{table}" '
+            f'SET show_my_rating = :rating, show_my_rated_at = :rated_at '
+            f"WHERE (show_ids->>'trakt')::bigint = :trakt_id"
+        )
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            trakt_id = ((record.get("show") or {}).get("ids") or {}).get("trakt")
+            if trakt_id is None:
+                continue
+            try:
+                self.session.execute(
+                    stmt,
+                    {
+                        "rating": record.get("rating"),
+                        "rated_at": record.get("rated_at"),
+                        "trakt_id": trakt_id,
+                    },
+                )
+            except Exception as e:
+                self.session.rollback()
+                logger.warning(f"Skipped show rating update in {schema_table}: {e}")
         self.session.commit()
 
     def get_source_values(

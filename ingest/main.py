@@ -4,6 +4,7 @@ import sys
 
 from src.config.logs import logging_config
 from src.pipelines.spotify.pipeline import SpotifyPipeline
+from src.pipelines.hardcover.pipeline import HardcoverPipeline
 from src.pipelines.football.pipeline import FootballPipeline
 from src.pipelines.mma.pipeline import MmaPipeline
 from src.pipelines.trakt.pipeline import TraktPipeline
@@ -16,7 +17,7 @@ async def main() -> dict[str, object]:
     logger.info("Starting ingest job")
     results: dict[str, object] = {}
 
-    for Pipeline in [SpotifyPipeline, TraktPipeline]:
+    for Pipeline in [SpotifyPipeline, TraktPipeline, HardcoverPipeline]:
         pipeline_name = Pipeline.__name__
         logger.info("Running pipeline: %s", pipeline_name)
         result = await Pipeline().run()
