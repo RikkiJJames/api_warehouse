@@ -7,10 +7,17 @@ Provisions a new GCP project with:
   `gcloud run jobs update` the corresponding job
 - Secret Manager containers for DB + API creds (values NOT set by Terraform)
 
-## Apply (two phases)
+## Apply (three phases)
 
-The GitHub connection is created out-of-band via `gcloud`, which needs the
-project and Cloud Build API to already exist — so this is a two-step apply.
+Two things can't be created by the `terraform apply` that also creates the
+Cloud Run Jobs, because the jobs' `secret_key_ref`s and the repository link
+are validated *at creation time*, not just at execution time:
+- Cloud Run rejects job creation immediately if a referenced secret has no
+  version yet — "populate secrets later" doesn't work, they must exist first.
+- The GitHub connection has to exist before `google_cloudbuildv2_repository`
+  can link to it.
+
+So: project+APIs → secrets & connection → everything else.
 
 1. `gcloud auth application-default login` (Terraform runs as you). You need
    `roles/billing.user` on the target billing account and permission to
@@ -24,9 +31,27 @@ project and Cloud Build API to already exist — so this is a two-step apply.
    terraform apply -target=google_project.this -target=google_project_service.apis
    ```
 
-3. Create the Cloud Build <-> GitHub connection interactively — this drives
-   the GitHub App install + OAuth via Google's own OAuth client, so **no PAT
-   is needed**:
+3. Now populate the two things the job/repo creation depends on:
+
+   **a. Secret values** — Terraform only creates empty containers
+   (`db_secret_names` / `ingest_secret_names` in `variables.tf`). Create them
+   for real, e.g. straight from your existing `.env` (values never get
+   echoed/typed):
+   ```
+   set -a; source /path/to/.env; set +a
+   for name in DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD \
+     SPORTS_API_KEY SPOTIFY_CLIENT_ID SPOTIFY_CLIENT_SECRET SPOTIFY_REFRESH_TOKEN SPOTIFY_REDIRECT_URL \
+     HARDCOVER_API_TOKEN TRAKT_CLIENT_ID TRAKT_CLIENT_SECRET TRAKT_REFRESH_TOKEN TRAKT_REDIRECT_URL; do
+     printf '%s' "${!name}" | gcloud secrets versions add "$name" \
+       --project=$(terraform output -raw project_id) --data-file=-
+   done
+   ```
+   You'll need to run `terraform apply -target=google_secret_manager_secret.db \
+   -target=google_secret_manager_secret.ingest` first if step 2 didn't already
+   create the secret containers.
+
+   **b. GitHub connection** — created out-of-band; this drives the GitHub App
+   install + OAuth via Google's own OAuth client, so **no PAT is needed**:
    ```
    gcloud builds connections create github github-connection \
      --region=<region> --project=<project_id>
@@ -37,30 +62,12 @@ project and Cloud Build API to already exist — so this is a two-step apply.
    gcloud builds connections describe github-connection \
      --region=<region> --project=<project_id>
    ```
-   It should show no pending OAuth step.
 
-4. Apply everything else. Terraform doesn't manage the connection resource
-   itself (the provider has no way to read it back without a token) — it just
-   points `google_cloudbuildv2_repository.parent_connection` at the
-   connection's resource path built from `github_connection_name`/`region`,
-   and manages the repository link, triggers, Artifact Registry, secrets, and
-   Cloud Run Jobs on top of it:
+4. Apply everything else — repository link, triggers, Artifact Registry,
+   Cloud Run Jobs:
    ```
    terraform apply
    ```
-
-## Populate secrets
-
-Terraform only creates empty Secret Manager containers. Fill in real values
-out-of-band (never put them in `.tf` files or state):
-
-```
-echo -n "the-value" | gcloud secrets versions add DB_PASSWORD \
-  --project=$(terraform output -raw project_id) --data-file=-
-```
-
-Repeat for every name in `db_secret_names` / `ingest_secret_names`
-(`terraform/variables.tf`). Cloud Run Jobs read `latest` automatically.
 
 ## First deploy
 
