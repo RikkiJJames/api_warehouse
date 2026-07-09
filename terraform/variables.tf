@@ -79,3 +79,26 @@ variable "ingest_dbt_schedule_timezone" {
   type        = string
   default     = "Europe/London"
 }
+
+variable "services" {
+  description = <<-EOT
+    Backend Cloud Run services, one per GitHub repo under github_owner, built
+    and deployed via their own push-triggered Cloud Build. Private by default
+    (no allow_unauthenticated binding) — only the Astro frontend's service
+    account (astro_frontend below) can invoke them. Each repo must have its
+    own `cloudbuild.yaml` at its root; see services.tf for the substitutions
+    it can use (_REGION, _REPOSITORY, _SERVICE_NAME).
+  EOT
+  type = map(object({
+    github_repo = string
+    port        = optional(number, 8080)
+    cpu         = optional(string, "1")
+    memory      = optional(string, "512Mi")
+    env         = optional(map(string), {})
+  }))
+  default = {
+    pokemon-dash = {
+      github_repo = "pokemon-dash"
+    }
+  }
+}
