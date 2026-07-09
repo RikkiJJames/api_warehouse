@@ -29,6 +29,11 @@ steps:
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-dbt:$COMMIT_SHA
 
+# Required when the trigger specifies a custom service_account (as ours does
+# for 2nd-gen repository triggers) — LEGACY logging is rejected in that case.
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 substitutions:
   _REGION: us-central1
   _REPOSITORY: api-warehouse

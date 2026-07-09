@@ -31,7 +31,8 @@ resource "google_cloudbuild_trigger" "dbt" {
     }
   }
 
-  filename = "cloudbuild-dbt.yaml"
+  filename        = "cloudbuild-dbt.yaml"
+  service_account = local.cloudbuild_sa_resource_name
 
   substitutions = {
     _REGION     = var.region
@@ -54,7 +55,8 @@ resource "google_cloudbuild_trigger" "ingest" {
     }
   }
 
-  filename = "cloudbuild-ingest.yaml"
+  filename        = "cloudbuild-ingest.yaml"
+  service_account = local.cloudbuild_sa_resource_name
 
   substitutions = {
     _REGION     = var.region

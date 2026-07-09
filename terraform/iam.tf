@@ -1,5 +1,10 @@
 locals {
-  cloudbuild_sa = "serviceAccount:${google_project.this.number}@cloudbuild.gserviceaccount.com"
+  cloudbuild_sa_email = "${google_project.this.number}@cloudbuild.gserviceaccount.com"
+  cloudbuild_sa        = "serviceAccount:${local.cloudbuild_sa_email}"
+  # Repository-based (2nd-gen) triggers require an explicit service_account —
+  # the implicit default-SA behavior only applies to legacy 1st-gen GitHub
+  # triggers, and omitting it fails trigger creation with a generic 400.
+  cloudbuild_sa_resource_name = "projects/${local.project}/serviceAccounts/${local.cloudbuild_sa_email}"
   # Distinct from cloudbuild_sa above: this is Cloud Build's 2nd-gen "P4SA",
   # which `gcloud builds connections create` needs Secret Manager admin
   # rights for — it creates/manages its own internal secret to hold the
@@ -62,4 +67,23 @@ resource "google_service_account_iam_member" "cloudbuild_act_as_run_jobs" {
   service_account_id = google_service_account.run_jobs.name
   role                = "roles/iam.serviceAccountUser"
   member              = local.cloudbuild_sa
+}
+
+# When a trigger's service_account is set explicitly (required for 2nd-gen
+# repository triggers), Cloud Build no longer auto-grants these — they're
+# otherwise implicit for the legacy default-SA behavior.
+resource "google_project_iam_member" "cloudbuild_builder" {
+  project = local.project
+  role    = "roles/cloudbuild.builds.builder"
+  member  = local.cloudbuild_sa
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
+resource "google_project_iam_member" "cloudbuild_log_writer" {
+  project = local.project
+  role    = "roles/logging.logWriter"
+  member  = local.cloudbuild_sa
+
+  depends_on = [time_sleep.wait_for_apis]
 }
