@@ -66,3 +66,29 @@ resource "google_cloudbuild_trigger" "ingest" {
 
   included_files = ["ingest/**", "cloudbuild-ingest.yaml", "pyproject.toml", "uv.lock"]
 }
+
+resource "google_cloudbuild_trigger" "analysis" {
+  project  = local.project
+  location = var.region
+  name     = "api-warehouse-analysis"
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.api_warehouse.id
+    push {
+      branch = var.branch_pattern
+    }
+  }
+
+  filename        = "cloudbuild-analysis.yaml"
+  service_account = local.cloudbuild_sa_resource_name
+
+  substitutions = {
+    _REGION       = var.region
+    _REPOSITORY   = google_artifact_registry_repository.images.repository_id
+    _SERVICE_NAME = google_cloud_run_v2_service.analysis.name
+  }
+
+  # analysis/ imports ingest/src/db directly, so a change to either subfolder
+  # (or the shared root pyproject.toml/uv.lock) needs to rebuild this image.
+  included_files = ["analysis/**", "ingest/**", "cloudbuild-analysis.yaml", "pyproject.toml", "uv.lock"]
+}

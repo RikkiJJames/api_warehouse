@@ -1,0 +1,34 @@
+steps:
+  # Build context is the repo root (not analysis/) since analysis/Dockerfile
+  # needs both analysis/ and ingest/ alongside the root pyproject.toml/uv.lock.
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-analysis:$COMMIT_SHA
+      - -f
+      - analysis/Dockerfile
+      - .
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update
+      - ${_SERVICE_NAME}
+      - --region=${_REGION}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-analysis:$COMMIT_SHA
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-analysis:$COMMIT_SHA
+
+# Required when the trigger specifies a custom service_account (as ours does
+# for 2nd-gen repository triggers) — LEGACY logging is rejected in that case.
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: api-warehouse
+  _SERVICE_NAME: api-warehouse-analysis

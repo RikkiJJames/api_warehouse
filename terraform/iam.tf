@@ -46,6 +46,31 @@ resource "google_secret_manager_secret_iam_member" "run_jobs_ingest_secrets" {
   member    = "serviceAccount:${google_service_account.run_jobs.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "run_analysis_db_secrets" {
+  for_each = google_secret_manager_secret.db
+
+  project   = local.project
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.run_analysis.email}"
+}
+
+resource "google_service_account_iam_member" "cloudbuild_act_as_run_analysis" {
+  service_account_id = google_service_account.run_analysis.name
+  role                = "roles/iam.serviceAccountUser"
+  member              = local.cloudbuild_sa
+}
+
+# Public per explicit choice — this is a personal read-only dashboard (no
+# write endpoints), so it's exposed without an IAM/token gate in front of it.
+resource "google_cloud_run_v2_service_iam_member" "analysis_public" {
+  project  = local.project
+  location = var.region
+  name     = google_cloud_run_v2_service.analysis.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
 # Cloud Build needs to push images and deploy/update the Cloud Run Jobs it built.
 resource "google_project_iam_member" "cloudbuild_artifact_writer" {
   project = local.project

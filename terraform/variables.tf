@@ -98,7 +98,7 @@ variable "services" {
   }))
   default = {
     pokemon-dash = {
-      github_repo = "pokemon-dash"
+      github_repo = "Pokemon-Dash"
     }
   }
 }
