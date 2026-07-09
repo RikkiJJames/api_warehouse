@@ -9,8 +9,21 @@ def _(mo):
     mo.md(r"""
     # Media Overview
 
-    Combined view of your Spotify listening history and Trakt watch history.
-    Switch tabs below for a cross-source summary or to drill into either source individually.
+    A single pane of glass over everything I've listened to, watched, and
+    read — pulled straight from my `api_warehouse` marts and refreshed
+    every time this app runs.
+
+    - **Spotify** — every track play, enriched with popularity, duration
+      and per-track play counts across the last week, month, year and
+      all-time.
+    - **Trakt** — your movie and show watch history, ratings, watchlist
+      and genre breakdown.
+    - **Hardcover** — books finished, currently reading, and want-to-read,
+      with yearly reading stats.
+
+    Use the **Overview** tab for the cross-source summary below, or jump
+    into **Spotify**, **Trakt**, or **Hardcover** for source-specific
+    breakdowns, filters, and leaderboards.
     """)
     return
 
@@ -27,11 +40,10 @@ def _():
 
 
 @app.cell
-def _(Path):
-    import sys
-    ROOT_DIR = Path.cwd().resolve()
-    sys.path.insert(0, ROOT_DIR)
-    ROOT_DIR
+def _():
+    # import sys
+    # ROOT_DIR = Path.cwd().resolve()
+    # sys.path.insert(0, ROOT_DIR)
     return
 
 
@@ -155,15 +167,51 @@ def _(data, pd):
 
 
 @app.cell
-def _(history_df, mo, reading_history_df, track_df):
-    overview_summary = mo.md(f"""
-    **Spotify plays logged:** {len(track_df)}
-    **Trakt items watched:** {len(history_df)}
-    **Hardcover books read:** {len(reading_history_df)}
-    **Spotify tracked since:** {track_df['played_at'].min()}
-    **Trakt tracked since:** {history_df['watched_at'].min()}
-    **Hardcover tracked since:** {reading_history_df['read_finished_at'].min()}
-    """)
+def _(history_df, mo, pd, reading_history_df, track_df):
+    _spotify_since = track_df['played_at'].min()
+    _trakt_since = history_df['watched_at'].min()
+    _hardcover_since = reading_history_df['read_finished_at'].min()
+
+    def _since_caption(ts, verb):
+        if pd.isna(ts):
+            return f"nothing {verb} yet"
+        return f"since {ts:%b %d, %Y}"
+
+    overview_stats = mo.hstack(
+        [
+            mo.stat(
+                value=f"{len(track_df):,}",
+                label="Spotify plays logged",
+                caption=_since_caption(_spotify_since, "played"),
+                bordered=True,
+            ),
+            mo.stat(
+                value=f"{len(history_df):,}",
+                label="Trakt items watched",
+                caption=_since_caption(_trakt_since, "watched"),
+                bordered=True,
+            ),
+            mo.stat(
+                value=f"{len(reading_history_df):,}",
+                label="Hardcover books read",
+                caption=_since_caption(_hardcover_since, "finished"),
+                bordered=True,
+            ),
+        ],
+        gap=2,
+    )
+
+    overview_summary = mo.vstack(
+        [
+            mo.md("## At a Glance"),
+            mo.md(
+                "A quick pulse check across all three sources before diving into "
+                "the tabs above — each card shows how much history has been "
+                "captured so far and how far back it goes."
+            ),
+            overview_stats,
+        ]
+    )
     return (overview_summary,)
 
 
@@ -421,30 +469,44 @@ def _(
     spotify_view = mo.ui.tabs({
         "Tracks": mo.vstack([
             mo.md("## Top Tracks"),
+            mo.md("Rank every track you've played, ranked by whichever window matters to you right now."),
             mo.hstack([metric, top_n]),
             top_tracks_df,
             mo.md("## Popularity vs. Play Count"),
+            mo.md(
+                "Spotify's global popularity score against how often *you* "
+                "actually play a track — the top-left quadrant is where your "
+                "hidden gems live, top-right is where your taste lines up "
+                "with the mainstream."
+            ),
             pop_scatter,
             mo.md("## Plays by Track Duration"),
+            mo.md("Total plays bucketed by track length, so you can see whether you gravitate towards short, medium, or long cuts."),
             duration_chart,
             mo.md("## Tracks by Decade"),
+            mo.md("Filter your library down to one or more release decades and see which tracks from those eras get the most plays."),
             decade_selector,
             decade_tracks_df,
-            mo.md(f"## Listening Time Selector:"),
+            mo.md("## Listening Time Selector"),
+            mo.md("Drag the slider to set a lookback window and see total listening time logged within it."),
             mo.hstack([weekly_listening_time, number_of_days]),
         ]),
         "Artists": mo.vstack([
             mo.md("## Top Artists"),
+            mo.md("Every artist you've listened to, ranked by total plays, with unique track count and average popularity."),
             artist_df.head(20),
             mo.md("## Artist Deep Dive"),
+            mo.md("Pick an artist below to see every track of theirs you've played and your total listening time with them."),
             artist_selector,
             mo.md(f"**Total listening time:** {time_listened}"),
             artist_detail_df,
         ]),
         "Albums": mo.vstack([
             mo.md("## Album Leaderboard"),
+            mo.md("Albums ranked by total plays across their tracks, alongside how much of each album you've actually explored."),
             album_df.head(30),
             mo.md("## Explicit vs Clean"),
+            mo.md("Share of your total plays that come from explicit vs. clean tracks."),
             explicit_chart,
         ]),
     })
@@ -576,29 +638,36 @@ def _(
     trakt_view = mo.ui.tabs({
         "Watch History": mo.vstack([
             mo.md("## Activity"),
+            mo.md("Number of movies and episodes watched per day — a quick way to spot binge sessions."),
             activity_chart,
             mo.md("## Timeline"),
+            mo.md("The full watch log, filterable by media type, most recent first."),
             media_type_filter,
             filtered_history_df,
         ]),
         "Movies": mo.vstack([
             mo.md("## Top Movies"),
+            mo.md("Every movie you've watched, sortable by watch count, total runtime, or your rating."),
             mo.hstack([movie_sort, movie_top_n]),
             top_movies_df,
             mo.md("## Rating Distribution"),
+            mo.md("How your personal movie ratings are spread out."),
             rating_hist,
         ]),
         "Shows": mo.vstack([
             mo.md("## Top Shows"),
+            mo.md("Shows ranked by episodes watched, completion percentage, or rating."),
             mo.hstack([show_sort, show_top_n]),
             top_shows_df,
         ]),
         "Watchlist": mo.vstack([
             mo.md("## Watchlist"),
+            mo.md("Movies and shows queued up but not yet watched."),
             watchlist_df,
         ]),
         "Genres": mo.vstack([
             mo.md("## Genre Breakdown"),
+            mo.md("Which genres dominate your watch history, split by movies vs. shows."),
             genre_chart,
             genre_stats_df,
         ]),
@@ -688,18 +757,22 @@ def _(
     hardcover_view = mo.ui.tabs({
         "Read Books": mo.vstack([
             mo.md("## Top Books"),
+            mo.md("Every finished book, sortable by when you finished it, your rating, or page count."),
             mo.hstack([book_sort, book_top_n]),
             top_books_df,
             mo.md("## Rating Distribution"),
+            mo.md("How your personal book ratings are spread out."),
             book_rating_hist,
         ]),
         "Reading List": mo.vstack([
             mo.md("## Currently Reading & Want to Read"),
+            mo.md("Everything on deck — filter by status to see what's in progress vs. still on the list."),
             reading_list_status_filter,
             filtered_reading_list_df,
         ]),
         "Stats": mo.vstack([
             mo.md("## Books Read per Year"),
+            mo.md("Books finished per calendar year, alongside pages and average rating."),
             reading_stats_chart,
             reading_stats_df,
         ]),
@@ -719,7 +792,19 @@ def _(
     mo.ui.tabs({
         "Overview": mo.vstack([
             overview_summary,
+            mo.md("## Daily Activity Across Sources"),
+            mo.md(
+                "Every logged Spotify play, Trakt watch, and finished Hardcover "
+                "book, plotted by day so you can spot binges, dry spells, and "
+                "how the three habits overlap over time."
+            ),
             combined_activity_chart,
+            mo.callout(
+                "Hover any point for the exact count, or switch to the "
+                "Spotify, Trakt, or Hardcover tabs above for source-specific "
+                "leaderboards and filters.",
+                kind="info",
+            ),
         ]),
         "Spotify": spotify_view,
         "Trakt": trakt_view,

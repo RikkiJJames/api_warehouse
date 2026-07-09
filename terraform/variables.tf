@@ -92,8 +92,8 @@ variable "services" {
   type = map(object({
     github_repo = string
     port        = optional(number, 8080)
-    cpu         = optional(string, "1")
-    memory      = optional(string, "512Mi")
+    cpu         = optional(string, "2")
+    memory      = optional(string, "1Gb")
     env         = optional(map(string), {})
   }))
   default = {

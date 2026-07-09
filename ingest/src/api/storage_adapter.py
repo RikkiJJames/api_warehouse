@@ -53,7 +53,11 @@ class StorageAdapter:
             getattr(self.registry, self.RATING_HANDLERS[logical_name])(db_target, records)
         elif logical_name in self.UPSERT_CONFIG:
             conflict_column, update_columns = self.UPSERT_CONFIG[logical_name]
-            self.registry.upsert_records(db_target, records, conflict_column, update_columns)
+            enriched = [
+                {**r, **extra} if isinstance(r, dict) else r
+                for r in records
+            ]
+            self.registry.upsert_records(db_target, enriched, conflict_column, update_columns)
         else:
             enriched = [
                 {**r, **extra} if isinstance(r, dict) else r
