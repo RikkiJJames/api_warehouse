@@ -1,5 +1,18 @@
+resource "google_service_account" "cloudbuild_trigger" {
+  project      = local.project
+  account_id   = "cloudbuild-trigger"
+  display_name = "SA Cloud Build trigger runs as"
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
 locals {
-  cloudbuild_sa_email = "${google_project.this.number}@cloudbuild.gserviceaccount.com"
+  # Newly-created projects no longer get the legacy default Cloud Build SA
+  # (PROJECT_NUMBER@cloudbuild.gserviceaccount.com) auto-provisioned as a
+  # usable build identity, so every trigger below runs as our own
+  # user-managed SA instead — this is also Google's currently recommended
+  # approach (BYOSA), not just a workaround.
+  cloudbuild_sa_email = google_service_account.cloudbuild_trigger.email
   cloudbuild_sa        = "serviceAccount:${local.cloudbuild_sa_email}"
   # Repository-based (2nd-gen) triggers require an explicit service_account —
   # the implicit default-SA behavior only applies to legacy 1st-gen GitHub
