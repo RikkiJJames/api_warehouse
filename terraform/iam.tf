@@ -1,5 +1,18 @@
 locals {
   cloudbuild_sa = "serviceAccount:${google_project.this.number}@cloudbuild.gserviceaccount.com"
+  # Distinct from cloudbuild_sa above: this is Cloud Build's 2nd-gen "P4SA",
+  # which `gcloud builds connections create` needs Secret Manager admin
+  # rights for — it creates/manages its own internal secret to hold the
+  # GitHub App credentials behind the connection.
+  cloudbuild_p4sa = "serviceAccount:service-${google_project.this.number}@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "cloudbuild_p4sa_secretmanager_admin" {
+  project = local.project
+  role    = "roles/secretmanager.admin"
+  member  = local.cloudbuild_p4sa
+
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 resource "google_service_account" "run_jobs" {
