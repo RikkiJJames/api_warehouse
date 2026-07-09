@@ -67,3 +67,15 @@ variable "ingest_secret_names" {
 
   ]
 }
+
+variable "ingest_dbt_schedule" {
+  description = "Cron schedule (unix-cron) for the hourly ingest-then-dbt Workflow run."
+  type        = string
+  default     = "0 * * * *"
+}
+
+variable "ingest_dbt_schedule_timezone" {
+  description = "Time zone for ingest_dbt_schedule."
+  type        = string
+  default     = "Europe/London"
+}

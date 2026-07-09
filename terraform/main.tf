@@ -17,6 +17,9 @@ resource "google_project_service" "apis" {
     "secretmanager.googleapis.com",
     "iam.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "workflows.googleapis.com",
+    "workflowexecutions.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ])
 
   project            = local.project
