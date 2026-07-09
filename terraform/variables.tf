@@ -64,15 +64,6 @@ variable "ingest_secret_names" {
   description = "Secret Manager secret names for ingest-only API credentials (values populated out-of-band)."
   type        = list(string)
   default = [
-    "SPORTS_API_KEY",
-    "SPOTIFY_CLIENT_ID",
-    "SPOTIFY_CLIENT_SECRET",
-    "SPOTIFY_REFRESH_TOKEN",
-    "SPOTIFY_REDIRECT_URL",
-    "HARDCOVER_API_TOKEN",
-    "TRAKT_CLIENT_ID",
-    "TRAKT_CLIENT_SECRET",
-    "TRAKT_REFRESH_TOKEN",
-    "TRAKT_REDIRECT_URL",
+
   ]
 }
