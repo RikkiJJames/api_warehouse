@@ -18,6 +18,13 @@ steps:
       - dbt/Dockerfile
       - dbt
 
+  # Push before deploying — the `images:` section only pushes after all
+  # steps finish, which is too late for the jobs update step below.
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-dbt:$COMMIT_SHA
+
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
     args:
