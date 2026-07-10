@@ -136,3 +136,13 @@ resource "google_project_iam_member" "operator_cloudbuild_editor" {
 
   depends_on = [time_sleep.wait_for_apis]
 }
+
+# builds.editor alone isn't enough to manually run a trigger that has an
+# explicit service_account (as all 2nd-gen repository triggers must): the
+# caller also needs iam.serviceAccounts.actAs on that SA, or the run is
+# rejected with PERMISSION_DENIED. Push-triggered builds are unaffected.
+resource "google_service_account_iam_member" "operator_act_as_cloudbuild_sa" {
+  service_account_id = google_service_account.cloudbuild_trigger.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "user:${var.operator_email}"
+}
