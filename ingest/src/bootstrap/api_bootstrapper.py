@@ -40,6 +40,11 @@ class ApiBootstrapper:
                     is_distinct=param.is_distinct,
                 )
 
+            self.service.repository.prune_endpoint_params(
+                endpoint_id=endpoint.id,
+                keep=[param.param_name for param in ep.params],
+            )
+
         for cfg in spec.api_config:
             if cfg.parameter_value is None:
                 # e.g. refresh_token via !env_optional once the DB already

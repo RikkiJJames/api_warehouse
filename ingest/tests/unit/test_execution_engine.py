@@ -55,6 +55,9 @@ def _make_api_mock(responses: dict):
 
     api.get_endpoint = get_endpoint
     api.throttle = AsyncMock()
+    # Real ExecutionClient sets this as a dict after every request; process_endpoint
+    # reads it via .get(), which breaks on MagicMock's auto-attribute default.
+    api._pagination = {"page_count": 1, "item_count": 0}
     return api
 
 
@@ -174,6 +177,7 @@ async def test_iterated_endpoint_partial_failure_continues():
 
     api.get_endpoint = get_endpoint
     api.throttle = AsyncMock()
+    api._pagination = {"page_count": 1, "item_count": 0}
 
     registry = MagicMock()
     registry.get_endpoint_params.return_value = [
@@ -217,6 +221,7 @@ async def test_failed_endpoint_does_not_stop_subsequent_endpoints():
         return [{"id": 1}]
 
     api.get_endpoint = get_endpoint
+    api._pagination = {"page_count": 1, "item_count": 0}
     registry = MagicMock()
     registry.get_endpoint_params.return_value = []
 

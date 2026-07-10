@@ -181,6 +181,20 @@ class ApiRepository:
         self.session.commit()
         return param
 
+    def prune_endpoint_params(self, endpoint_id: int, keep: list[str]) -> int:
+        """Delete params no longer present in the spec — stale rows otherwise
+        survive re-seeding forever and leak into requests (e.g. as unexpected
+        GraphQL variables)."""
+        stmt = select(EndpointParam).where(EndpointParam.endpoint_id == endpoint_id)
+        rows = self.session.execute(stmt).scalars().all()
+        stale = [r for r in rows if r.param_name not in keep]
+        for row in stale:
+            logger.info(f"Pruning stale param '{row.param_name}' from endpoint {endpoint_id}")
+            self.session.delete(row)
+        if stale:
+            self.session.commit()
+        return len(stale)
+
     def get_ordered_endpoints(self, api_id: int) -> list[dict]:
         logger.info(f"Fetching ordered endpoints for API {api_id}")
         stmt = (
