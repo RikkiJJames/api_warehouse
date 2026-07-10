@@ -1,5 +1,7 @@
 steps:
-  - name: gcr.io/cloud-builders/bash
+  # gcr.io/cloud-builders/bash doesn't exist; reuse the docker builder image
+  # (needed by the next step anyway) for the shell commands.
+  - name: gcr.io/cloud-builders/docker
     entrypoint: bash
     args:
       - -c

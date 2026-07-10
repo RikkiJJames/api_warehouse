@@ -33,6 +33,27 @@ resource "google_project_iam_member" "cloudbuild_p4sa_secretmanager_admin" {
   depends_on = [time_sleep.wait_for_apis]
 }
 
+# The legacy Cloud Build SA (PROJECT_NUMBER@cloudbuild.gserviceaccount.com).
+# New projects don't provision it, but RunBuildTrigger (manual "Run" via
+# gcloud/console) still creates the build through it internally — even for
+# BYOSA triggers — so without it every manual run fails with an opaque
+# "Permission 'cloudbuild.builds.create' denied on projects/<hex>" while the
+# caller's own IAM check passes and push-triggered builds work fine. This
+# resource provisions the identity; the builder grant below makes it usable.
+resource "google_project_service_identity" "cloudbuild" {
+  provider = google-beta
+  project  = local.project
+  service  = "cloudbuild.googleapis.com"
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
+resource "google_project_iam_member" "cloudbuild_legacy_sa_builder" {
+  project = local.project
+  role    = "roles/cloudbuild.builds.builder"
+  member  = "serviceAccount:${google_project_service_identity.cloudbuild.email}"
+}
+
 resource "google_service_account" "run_jobs" {
   project      = local.project
   account_id   = "cloud-run-jobs"
