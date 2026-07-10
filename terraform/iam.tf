@@ -125,3 +125,14 @@ resource "google_project_iam_member" "cloudbuild_log_writer" {
 
   depends_on = [time_sleep.wait_for_apis]
 }
+
+# Lets var.operator_email manually run/retry triggers via `gcloud builds
+# triggers run` or the console "Run" button — distinct from the cloudbuild_sa
+# grants above, which govern what the *build itself* can do once running.
+resource "google_project_iam_member" "operator_cloudbuild_editor" {
+  project = local.project
+  role    = "roles/cloudbuild.builds.editor"
+  member  = "user:${var.operator_email}"
+
+  depends_on = [time_sleep.wait_for_apis]
+}

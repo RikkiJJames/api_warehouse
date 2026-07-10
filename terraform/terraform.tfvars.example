@@ -1,5 +1,6 @@
 project_id          = "api-warehouse-prod"
 billing_account_id  = "XXXXXX-XXXXXX-XXXXXX"
+operator_email      = "you@example.com" # account you use for `gcloud builds triggers run` / console
 region              = "europe-west2"
 github_owner        = "rikkijames"
 github_repo         = "api_warehouse"

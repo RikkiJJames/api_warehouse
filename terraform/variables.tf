@@ -27,6 +27,11 @@ variable "region" {
   default     = "us-central1"
 }
 
+variable "operator_email" {
+  description = "Google account that manually triggers builds / operates this project via gcloud CLI (needs cloudbuild.builds.editor to run triggers) — separate from whatever identity terraform apply itself runs as."
+  type        = string
+}
+
 variable "github_owner" {
   description = "GitHub org/user that owns the repo (e.g. rikkijames)."
   type        = string
