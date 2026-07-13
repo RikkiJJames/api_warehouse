@@ -181,3 +181,22 @@ resource "google_service_account_iam_member" "operator_act_as_cloudbuild_sa" {
   role               = "roles/iam.serviceAccountUser"
   member             = "user:${var.operator_email}"
 }
+
+# Lets var.operator_email log into the Cloud SQL instance directly (e.g. via
+# `gcloud sql connect`) using their Google identity — see
+# google_sql_user.operator in cloudsql.tf for the matching DB-side IAM user.
+resource "google_project_iam_member" "operator_cloudsql_client" {
+  project = local.project
+  role    = "roles/cloudsql.client"
+  member  = "user:${var.operator_email}"
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
+resource "google_project_iam_member" "operator_cloudsql_instance_user" {
+  project = local.project
+  role    = "roles/cloudsql.instanceUser"
+  member  = "user:${var.operator_email}"
+
+  depends_on = [time_sleep.wait_for_apis]
+}

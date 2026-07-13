@@ -32,6 +32,14 @@ resource "google_sql_database_instance" "main" {
       # allowlist. The Cloud SQL Auth Proxy sidecar authenticates via IAM
       # instead, over an encrypted tunnel, so public IP stays otherwise closed.
     }
+
+    # Lets var.operator_email log in with their Google identity (see the
+    # google_sql_user.operator IAM user below) instead of a separate DB
+    # password, via `gcloud sql connect` or the proxy's --auto-iam-authn.
+    database_flags {
+      name  = "cloudsql.iam_authentication"
+      value = "on"
+    }
   }
 
   depends_on = [time_sleep.wait_for_apis]
@@ -56,4 +64,15 @@ resource "google_sql_user" "app" {
   name     = "app"
   instance = google_sql_database_instance.main.name
   password = random_password.db_user.result
+}
+
+# IAM user, not password-based — var.operator_email logs in with their own
+# Google identity. Starts with no privileges on existing schemas (all owned
+# by "app"); run `GRANT app TO "<operator_email>";` once, connected as "app",
+# to inherit read/write access.
+resource "google_sql_user" "operator" {
+  project  = local.project
+  name     = var.operator_email
+  instance = google_sql_database_instance.main.name
+  type     = "CLOUD_IAM_USER"
 }
