@@ -49,6 +49,14 @@ def upgrade() -> None:
     # (confirmed empty for every existing row) regardless of extended=full or
     # how many times they're re-fetched — these columns never had a real
     # chance of being populated. Superseded by movie_details/show_details.
+    #
+    # The dbt staging views still reference these columns until dbt is next
+    # run with the updated model SQL (which no longer selects them), so
+    # Postgres blocks a plain DROP COLUMN with DependentObjectsStillExist —
+    # cascade through the stale views first; dbt recreates them cleanly (as
+    # plain views, materialized fresh) on its next run regardless.
+    op.execute("DROP VIEW IF EXISTS staging.stg_watched_movies CASCADE")
+    op.execute("DROP VIEW IF EXISTS staging.stg_watched_episodes CASCADE")
     op.drop_column('watched_movies', 'movie_images', schema='trakt')
     op.drop_column('watched_episodes', 'show_images', schema='trakt')
 
