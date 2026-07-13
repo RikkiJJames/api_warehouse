@@ -1,5 +1,0 @@
-project_id                 = "rikki-home-repository"
-billing_account_id         = "01470D-68F3B9-17393F"
-region                     = "europe-west2"
-github_owner               = "RikkiJJames"
-job_deletion_protection = false

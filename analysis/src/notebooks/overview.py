@@ -217,49 +217,6 @@ def _(history_df, mo, pd, reading_history_df, track_df):
 
 
 @app.cell
-def _():
-    # _by_artist = (
-    #     enriched_track_df.groupby('artist_name')['all_time_plays']
-    #     .sum()
-    #     .reset_index()
-    #     .sort_values('monthly_plays', ascending=False)
-    # )
-
-    # if _by_artist.empty or _by_artist['monthly_plays'].iloc[0] == 0:
-    #     top_artist_card = mo.callout("No plays logged in the last 30 days yet.", kind="info")
-    # else:
-    #     _top_name = _by_artist.iloc[0]['artist_name']
-    #     _top_plays = int(_by_artist.iloc[0]['monthly_plays'])
-    #     _top_rows = enriched_track_df[enriched_track_df['artist_name'] == _top_name]
-    #     _tracks_this_month = _top_rows[_top_rows['monthly_plays'] > 0]['track_name'].nunique()
-    #     # Same artist can appear with a null image on some rows if data landed
-    #     # mid-migration — take the first non-null instead of assuming row 0 has it.
-    #     _image_candidates = _top_rows['artist_image_url'].dropna()
-    #     _image_url = _image_candidates.iloc[0] if not _image_candidates.empty else None
-
-    #     _art = (
-    #         mo.image(src=_image_url, width=140, height=140, rounded=True, style={"object-fit": "cover"})
-    #         if _image_url
-    #         else mo.md("🎧")
-    #     )
-    #     top_artist_card = mo.hstack(
-    #         [
-    #             _art,
-    #             mo.vstack(
-    #                 [
-    #                     mo.md(f"### {_top_name}"),
-    #                     mo.md(f"**{_top_plays:,} plays** this month across {_tracks_this_month} track{'s' if _tracks_this_month != 1 else ''}"),
-    #                 ],
-    #                 justify="center",
-    #             ),
-    #         ],
-    #         gap=2,
-    #         align="center",
-    #     )
-    return
-
-
-@app.cell
 def _(enriched_track_df, mo):
     _by_artist = (
         enriched_track_df.groupby("artist_name")["monthly_plays"]

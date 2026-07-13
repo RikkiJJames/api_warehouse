@@ -11,7 +11,14 @@ __marimo__
 
 *.cfg
 .claude
-.log
+*.log
+
+# Editor/tool backup files (vim/emacs-style) — one of these (.env~) leaked
+# live credentials into a commit once already; never again.
+*~
+
+# Airflow's own log output, not source
+airflow/logs/
 
 # Virtual environments
 .venv
