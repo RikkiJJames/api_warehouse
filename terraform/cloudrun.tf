@@ -37,7 +37,7 @@ resource "google_cloud_run_v2_job" "dbt" {
 
       containers {
         name  = "cloudsql-proxy"
-        image = "us-docker.pkg.dev/cloud-sql-connectors/cloud-sql-proxy/cloud-sql-proxy:2"
+        image = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.23.0"
         args = [
           "--structured-logs",
           "--port=5432",
@@ -106,7 +106,7 @@ resource "google_cloud_run_v2_service" "analysis" {
 
     containers {
       name  = "cloudsql-proxy"
-      image = "us-docker.pkg.dev/cloud-sql-connectors/cloud-sql-proxy/cloud-sql-proxy:2"
+      image = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.23.0"
       args = [
         "--structured-logs",
         "--port=5432",
@@ -163,7 +163,7 @@ resource "google_cloud_run_v2_job" "ingest" {
 
       containers {
         name  = "cloudsql-proxy"
-        image = "us-docker.pkg.dev/cloud-sql-connectors/cloud-sql-proxy/cloud-sql-proxy:2"
+        image = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.23.0"
         args = [
           "--structured-logs",
           "--port=5432",
