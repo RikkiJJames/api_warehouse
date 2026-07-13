@@ -2,7 +2,12 @@
 set -euo pipefail
 
 # One-time setup that terraform apply can't do itself:
-#   1. push real secret values from .env into the Secret Manager containers
+#   1. push real third-party API credential values from .env into the Secret
+#      Manager containers (DB_* secrets are NOT included here — Terraform
+#      generates and owns those directly via google_secret_manager_secret_version
+#      in secrets.tf, so pushing a version from .env would just shadow the
+#      correct value with whatever's in your local .env, which has drifted
+#      stale before)
 #   2. create the Cloud Build <-> GitHub connection (interactive OAuth)
 # Run this after `terraform apply -target=google_project.this -target=google_project_service.apis`
 # and before the final `terraform apply`.
@@ -63,8 +68,20 @@ set -a
 source "$ENV_FILE"
 set +a
 
+# Keep in sync with ingest_secret_names in variables.tf — these are the only
+# secrets Terraform can't populate itself (third-party credentials obtained
+# out-of-band). DB_* is deliberately excluded; see the comment at the top.
 SECRET_NAMES=(
-  DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD
+  SPORTS_API_KEY
+  SPOTIFY_CLIENT_ID
+  SPOTIFY_CLIENT_SECRET
+  SPOTIFY_REFRESH_TOKEN
+  SPOTIFY_REDIRECT_URL
+  HARDCOVER_API_TOKEN
+  TRAKT_CLIENT_ID
+  TRAKT_CLIENT_SECRET
+  TRAKT_REFRESH_TOKEN
+  TRAKT_REDIRECT_URL
 )
 
 for name in "${SECRET_NAMES[@]}"; do

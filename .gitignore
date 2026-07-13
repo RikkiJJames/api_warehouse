@@ -24,3 +24,6 @@ terraform/*.tfstate.*
 terraform/terraform.tfvars
 terraform/*.auto.tfvars
 .terraform**
+
+# Downloaded by terraform/cloud-sql-proxy.sh
+terraform/.bin/

@@ -7,7 +7,9 @@ Provisions a new GCP project with:
   `gcloud run jobs update` the corresponding job
 - A Workflow (`ingest-then-dbt`) that runs the ingest job, then the dbt job
   once ingest actually completes, fired hourly by Cloud Scheduler
-- Secret Manager containers for DB + API creds (values NOT set by Terraform)
+- Secret Manager containers for DB creds (values generated and set by
+  Terraform itself) and third-party API creds (values pushed out-of-band via
+  `bootstrap.sh`, since Terraform has no way to obtain them)
 
 ## Apply
 
@@ -67,3 +69,21 @@ Then execute it:
 gcloud run jobs execute api-warehouse-dbt --region=$(terraform output ... region) \
   --project=$(terraform output -raw project_id)
 ```
+
+## Local DB access
+
+`api-warehouse-db` has no `authorized_networks`, so its public IP is
+unreachable from anywhere — the only way in is the Cloud SQL Auth Proxy,
+authenticating via IAM instead. `./cloud-sql-proxy.sh` installs the proxy
+binary if it's not already on your `PATH` (into `terraform/.bin/`, gitignored)
+and runs it in the foreground against `api-warehouse-db`:
+
+```
+./cloud-sql-proxy.sh
+```
+
+Leave that running, then in another shell point `DB_HOST=127.0.0.1` /
+`DB_PORT=5432` at it (matches what the Cloud Run sidecars use in production)
+for things like `alembic upgrade head`, a local ingest run, or `psql`. Needs
+`roles/cloudsql.client` + `roles/cloudsql.instanceUser` on your account (see
+`operator_cloudsql_client`/`operator_cloudsql_instance_user` in `iam.tf`).
