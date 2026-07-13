@@ -2,6 +2,10 @@ with movies as (
     select * from {{ ref('stg_watched_movies') }}
 ),
 
+movie_details as (
+    select * from {{ ref('stg_movie_details') }}
+),
+
 unique_movies as (
     select distinct on (trakt_movie_id)
         trakt_movie_id,
@@ -22,13 +26,14 @@ unique_movies as (
         homepage,
         trailer,
         status,
-        certification,
-        poster_url
+        certification
     from movies
     where trakt_movie_id is not null
-    -- Prefer a row that actually has a poster over one that doesn't, since
-    -- the same movie can appear across multiple watch events.
-    order by trakt_movie_id, poster_url is null, released_date
+    order by trakt_movie_id, released_date
 )
 
-select * from unique_movies
+select
+    unique_movies.*,
+    movie_details.poster_url
+from unique_movies
+left join movie_details on unique_movies.trakt_movie_id = movie_details.trakt_movie_id

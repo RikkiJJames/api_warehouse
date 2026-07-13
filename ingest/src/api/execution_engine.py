@@ -221,6 +221,67 @@ class ExecutionEngine:
                         results[logical_name] = {"status": "ok", "count": total}
                         continue
 
+                    # Single-id-per-request detail endpoints (e.g. Trakt's
+                    # /movies/{id}, /shows/{id}) — unlike "ids" above, these
+                    # don't support batching multiple ids into one call, but
+                    # get the same existing-id skip + refetch_if_null
+                    # self-healing. target_column names the id column in
+                    # db_target when it doesn't match source_column (e.g.
+                    # flatten_record turns a bare "ids" object into
+                    # "ids_trakt", not "trakt_movie_id").
+                    if p["param_name"] == "path_id":
+                        new_values = source_values
+                        target_column = p.get("target_column") or p["source_column"]
+                        if endpoint.get("db_target"):
+                            existing_ids = set(
+                                self.registry.get_source_values(
+                                    endpoint["db_target"], target_column
+                                )
+                            )
+                            refetch_column = p.get("refetch_if_null")
+                            if refetch_column:
+                                incomplete_ids = set(
+                                    self.registry.get_incomplete_ids(
+                                        endpoint["db_target"], target_column, refetch_column
+                                    )
+                                )
+                                existing_ids -= incomplete_ids
+                            new_values = [v for v in source_values if v not in existing_ids]
+
+                        if not new_values:
+                            print(f"{logical_name} → 0 (nothing new)")
+                            results[logical_name] = {"status": "ok", "count": 0}
+                            continue
+
+                        for i, value in enumerate(new_values):
+                            if i > 0:
+                                await self.api.throttle()
+
+                            # Path templates are resolved from stored context
+                            # values, not the loop variable directly — stash
+                            # it under source_column so {source_column} in
+                            # the template picks it up.
+                            self.context.store(p["source_column"], value)
+                            path = self.resolver.resolve(template)
+
+                            try:
+                                items = await self.process_endpoint(
+                                    endpoint, path, params=static_params or None
+                                )
+                                total += len(items)
+                                print(f"{logical_name}[{value}] → {len(items)}")
+                            except RateLimitExceeded as e:
+                                logger.warning(
+                                    f"{logical_name} rate-limited on [{value}] ({e}); "
+                                    f"skipping remaining values"
+                                )
+                                break
+                            except Exception as e:
+                                logger.warning(f"{logical_name}[{value}] failed: {e}")
+
+                        results[logical_name] = {"status": "ok", "count": total}
+                        continue
+
                     for i, value in enumerate(source_values):
                         if i > 0:
                             await self.api.throttle()

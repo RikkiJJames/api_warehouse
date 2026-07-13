@@ -67,22 +67,12 @@ class TraktPipeline(ApiPipeline):
     def get_extra_params(self) -> dict:
         params = {}
 
-        # If any already-synced row is still missing movie_images/show_images
-        # (e.g. that column didn't exist yet when it was first fetched), the
-        # watermark is suppressed for this run so the full history gets
-        # re-walked and every event re-upserted — which backfills the column
-        # via UPSERT_CONFIG — instead of only fetching events since last time.
-        # Once nothing's missing, this drops back to the efficient watermark.
         movies_watermark = self.meta.config.get(self.WATCHED_MOVIES_WATERMARK_KEY)
-        if movies_watermark and not self.registry.has_incomplete_rows(
-            "trakt.watched_movies", "movie_images"
-        ):
+        if movies_watermark:
             params["watched_movies"] = {"start_at": movies_watermark}
 
         episodes_watermark = self.meta.config.get(self.WATCHED_EPISODES_WATERMARK_KEY)
-        if episodes_watermark and not self.registry.has_incomplete_rows(
-            "trakt.watched_episodes", "show_images"
-        ):
+        if episodes_watermark:
             params["watched_episodes"] = {"start_at": episodes_watermark}
 
         return params

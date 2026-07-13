@@ -70,6 +70,3 @@ class ApiRegistry:
 
     def get_incomplete_ids(self, schema_table: str, id_column: str, check_column: str) -> list[str]:
         return self.service.repository.get_incomplete_ids(schema_table, id_column, check_column)
-
-    def has_incomplete_rows(self, schema_table: str, check_column: str) -> bool:
-        return self.service.repository.has_incomplete_rows(schema_table, check_column)

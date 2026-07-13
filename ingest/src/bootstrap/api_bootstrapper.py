@@ -39,6 +39,7 @@ class ApiBootstrapper:
                     source_column=param.source_column,
                     is_distinct=param.is_distinct,
                     refetch_if_null=param.refetch_if_null,
+                    target_column=param.target_column,
                 )
 
             self.service.repository.prune_endpoint_params(

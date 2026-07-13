@@ -21,6 +21,8 @@ from src.db.models.trakt.watched_movies import WatchedMovies  # noqa: F401
 from src.db.models.trakt.watched_episodes import WatchedEpisodes  # noqa: F401
 from src.db.models.trakt.watchlist_movies import WatchlistMovies  # noqa: F401
 from src.db.models.trakt.watchlist_shows import WatchlistShows  # noqa: F401
+from src.db.models.trakt.movie_details import MovieDetails  # noqa: F401
+from src.db.models.trakt.show_details import ShowDetails  # noqa: F401
 from src.db.models.hardcover.read_books import ReadBooks  # noqa: F401
 from src.db.models.hardcover.currently_reading import CurrentlyReading  # noqa: F401
 from src.db.models.hardcover.want_to_read import WantToRead  # noqa: F401

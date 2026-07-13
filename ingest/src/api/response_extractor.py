@@ -23,4 +23,11 @@ class ResponseExtractor:
             if isinstance(response, dict) and key in response:
                 response = response[key]
 
-        return response if isinstance(response, list) else []
+        if isinstance(response, list):
+            return response
+        # A bare single-resource object (e.g. Trakt's GET /movies/{id}) isn't
+        # wrapped in any of the keys above — treat it as one record rather
+        # than silently dropping it.
+        if isinstance(response, dict):
+            return [response]
+        return []

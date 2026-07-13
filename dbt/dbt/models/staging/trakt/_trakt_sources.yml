@@ -13,3 +13,7 @@ sources:
         description: Movies saved to watchlist
       - name: watchlist_shows
         description: Shows saved to watchlist
+      - name: movie_details
+        description: One row per unique movie, with poster/image data (watch-history endpoints don't include it)
+      - name: show_details
+        description: One row per unique show, with poster/image data (watch-history endpoints don't include it)

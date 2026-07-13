@@ -37,30 +37,67 @@ endpoints:
       - param_name: extended
         default_value: "full"
 
+  # Watch-history endpoints above never include image data (Trakt removed
+  # it), regardless of extended=full — posters only come from these
+  # per-movie/per-show detail endpoints. One request per unique id (no
+  # batching support), self-healing via refetch_if_null so a movie/show
+  # already stored still gets picked up again if its images are still null.
+  - logical_name: movie_details
+    path_template: movies/{trakt_movie_id}
+    exec_order: 3
+    is_active: true
+    db_target: trakt.movie_details
+    response_path: null
+    params:
+      - param_name: path_id
+        source_table: trakt.watched_movies
+        source_column: trakt_movie_id
+        target_column: ids_trakt
+        is_distinct: true
+        refetch_if_null: images
+      - param_name: extended
+        default_value: "full"
+
+  - logical_name: show_details
+    path_template: shows/{trakt_show_id}
+    exec_order: 4
+    is_active: true
+    db_target: trakt.show_details
+    response_path: null
+    params:
+      - param_name: path_id
+        source_table: trakt.watched_episodes
+        source_column: trakt_show_id
+        target_column: ids_trakt
+        is_distinct: true
+        refetch_if_null: images
+      - param_name: extended
+        default_value: "full"
+
   - logical_name: watchlist_movies
     path_template: users/me/watchlist/movies
-    exec_order: 3
+    exec_order: 5
     is_active: true
     db_target: trakt.watchlist_movies
     response_path: null
 
   - logical_name: watchlist_shows
     path_template: users/me/watchlist/shows
-    exec_order: 4
+    exec_order: 6
     is_active: true
     db_target: trakt.watchlist_shows
     response_path: null
 
   - logical_name: movie_ratings
     path_template: sync/ratings/movies
-    exec_order: 5
+    exec_order: 7
     is_active: true
     db_target: trakt.watched_movies
     response_path: null
 
   - logical_name: show_ratings
     path_template: sync/ratings/shows
-    exec_order: 6
+    exec_order: 8
     is_active: true
     db_target: trakt.watched_episodes
     response_path: null

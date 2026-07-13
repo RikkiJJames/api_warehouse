@@ -56,3 +56,10 @@ class EndpointParam(Base):
     # is still null on its row, self-healing exactly that gap without
     # re-fetching everything else.
     refetch_if_null: Mapped[str | None] = mapped_column(nullable=True)
+    # For "path_id" params (single-item detail endpoints like Trakt's
+    # /movies/{id}), the id column in db_target usually isn't literally named
+    # the same as source_column (e.g. flatten_record turns a bare "ids"
+    # object into "ids_trakt", not "trakt_movie_id") — set this when they
+    # differ. Falls back to source_column when unset, so existing "ids"-batch
+    # params (where source and target happen to share a name) are unaffected.
+    target_column: Mapped[str | None] = mapped_column(nullable=True)

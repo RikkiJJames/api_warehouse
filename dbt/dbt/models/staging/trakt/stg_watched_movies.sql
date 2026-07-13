@@ -29,8 +29,6 @@ select
     movie_homepage                 as homepage,
     movie_trailer                  as trailer,
     movie_status                   as status,
-    movie_certification            as certification,
-    -- Trakt returns poster paths without a scheme (see docs.trakt.tv/docs/images).
-    'https://' || (movie_images -> 'poster' ->> 0) as poster_url
+    movie_certification            as certification
 from source
 where movie_title is not null

@@ -29,8 +29,6 @@ select
     show_first_aired,
     show_aired_episodes,
     show_airs,
-    -- Trakt returns poster paths without a scheme (see docs.trakt.tv/docs/images).
-    'https://' || (show_images -> 'poster' ->> 0) as poster_url,
     (episode_ids->>'trakt')::int   as trakt_episode_id,
     episode_season                 as season,
     episode_number,
