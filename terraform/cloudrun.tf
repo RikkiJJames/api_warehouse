@@ -90,6 +90,12 @@ resource "google_cloud_run_v2_service" "analysis" {
       image      = "us-docker.pkg.dev/cloudrun/container/hello"
       depends_on = ["cloudsql-proxy"]
 
+      # A multi-container service has no default ingress port — exactly one
+      # container must declare it explicitly, and only one may.
+      ports {
+        container_port = 8080
+      }
+
       dynamic "env" {
         for_each = google_secret_manager_secret.db
         content {
