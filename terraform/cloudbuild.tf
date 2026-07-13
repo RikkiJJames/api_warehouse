@@ -31,7 +31,7 @@ resource "google_cloudbuild_trigger" "dbt" {
     }
   }
 
-  filename        = "cloudbuild-dbt.yaml"
+  filename        = "terraform/cloudbuild-dbt.yaml"
   service_account = local.cloudbuild_sa_resource_name
 
   substitutions = {
@@ -40,7 +40,7 @@ resource "google_cloudbuild_trigger" "dbt" {
     _JOB_NAME   = google_cloud_run_v2_job.dbt.name
   }
 
-  included_files = ["dbt/**", "cloudbuild-dbt.yaml", "pyproject.toml", "uv.lock"]
+  included_files = ["dbt/**", "terraform/cloudbuild-dbt.yaml", "pyproject.toml", "uv.lock"]
 }
 
 resource "google_cloudbuild_trigger" "ingest" {
@@ -55,7 +55,7 @@ resource "google_cloudbuild_trigger" "ingest" {
     }
   }
 
-  filename        = "cloudbuild-ingest.yaml"
+  filename        = "terraform/cloudbuild-ingest.yaml"
   service_account = local.cloudbuild_sa_resource_name
 
   substitutions = {
@@ -64,7 +64,7 @@ resource "google_cloudbuild_trigger" "ingest" {
     _JOB_NAME   = google_cloud_run_v2_job.ingest.name
   }
 
-  included_files = ["ingest/**", "cloudbuild-ingest.yaml", "pyproject.toml", "uv.lock"]
+  included_files = ["ingest/**", "terraform/cloudbuild-ingest.yaml", "pyproject.toml", "uv.lock"]
 }
 
 resource "google_cloudbuild_trigger" "analysis" {
@@ -79,7 +79,7 @@ resource "google_cloudbuild_trigger" "analysis" {
     }
   }
 
-  filename        = "cloudbuild-analysis.yaml"
+  filename        = "terraform/cloudbuild-analysis.yaml"
   service_account = local.cloudbuild_sa_resource_name
 
   substitutions = {
@@ -90,5 +90,5 @@ resource "google_cloudbuild_trigger" "analysis" {
 
   # analysis/ imports ingest/src/db directly, so a change to either subfolder
   # (or the shared root pyproject.toml/uv.lock) needs to rebuild this image.
-  included_files = ["analysis/**", "ingest/**", "cloudbuild-analysis.yaml", "pyproject.toml", "uv.lock"]
+  included_files = ["analysis/**", "ingest/**", "terraform/cloudbuild-analysis.yaml", "pyproject.toml", "uv.lock"]
 }
