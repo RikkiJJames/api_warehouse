@@ -89,6 +89,25 @@ resource "google_secret_manager_secret_iam_member" "run_analysis_db_secrets" {
   member    = "serviceAccount:${google_service_account.run_analysis.email}"
 }
 
+# Secret Manager IAM grants take up to ~a minute to actually propagate, even
+# though the grant call itself returns immediately (Google-acknowledged bug
+# b/271913053: https://github.com/hashicorp/terraform-provider-google/issues/13786).
+# Cloud Run validates secret access as part of every job/service update, and
+# that check runs essentially immediately after the grant — an explicit
+# depends_on alone only fixes call *ordering*, not this propagation gap, so
+# without the wait a fresh grant can still get rejected, permanently sticking
+# that revision's Ready condition until another update happens to retrigger
+# validation after enough time has passed.
+resource "time_sleep" "wait_for_secret_iam" {
+  create_duration = "60s"
+
+  depends_on = [
+    google_secret_manager_secret_iam_member.run_jobs_db_secrets,
+    google_secret_manager_secret_iam_member.run_jobs_ingest_secrets,
+    google_secret_manager_secret_iam_member.run_analysis_db_secrets,
+  ]
+}
+
 # Needed by the Cloud SQL Auth Proxy sidecar (cloudrun.tf) running under each
 # identity to open an authenticated tunnel to the instance.
 resource "google_project_iam_member" "run_jobs_cloudsql_client" {

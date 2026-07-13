@@ -70,12 +70,10 @@ resource "google_cloud_run_v2_job" "dbt" {
   }
 
   # Cloud Run validates secret access at update time using the runtime SA's
-  # grant below — without this explicit edge, Terraform has no dependency
-  # ordering between the two (the env block only references the secret
-  # *container*, not the IAM grant), so a parallel apply can update this job
-  # before the grant exists, permanently sticking its Ready condition on
-  # "SecretsAccessCheckFailed" until another update re-triggers validation.
-  depends_on = [time_sleep.wait_for_apis, google_secret_manager_secret_iam_member.run_jobs_db_secrets]
+  # grant — waiting on time_sleep.wait_for_secret_iam (not just the grant
+  # resource directly) covers both correct ordering and the IAM propagation
+  # gap; see the comment on that resource in iam.tf.
+  depends_on = [time_sleep.wait_for_apis, time_sleep.wait_for_secret_iam]
 }
 
 resource "google_service_account" "run_analysis" {
@@ -159,7 +157,7 @@ resource "google_cloud_run_v2_service" "analysis" {
   }
 
   # See the matching comment on google_cloud_run_v2_job.dbt above.
-  depends_on = [time_sleep.wait_for_apis, google_secret_manager_secret_iam_member.run_analysis_db_secrets]
+  depends_on = [time_sleep.wait_for_apis, time_sleep.wait_for_secret_iam]
 }
 
 resource "google_cloud_run_v2_job" "ingest" {
@@ -227,9 +225,5 @@ resource "google_cloud_run_v2_job" "ingest" {
   }
 
   # See the matching comment on google_cloud_run_v2_job.dbt above.
-  depends_on = [
-    time_sleep.wait_for_apis,
-    google_secret_manager_secret_iam_member.run_jobs_db_secrets,
-    google_secret_manager_secret_iam_member.run_jobs_ingest_secrets,
-  ]
+  depends_on = [time_sleep.wait_for_apis, time_sleep.wait_for_secret_iam]
 }
