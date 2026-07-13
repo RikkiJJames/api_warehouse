@@ -65,6 +65,8 @@ models:
         description: Spotify URI for the artist
         data_tests:
           - not_null
+      - name: artist_image_url
+        description: URL of the artist's largest available image
 
   - name: album
     description: Album details sourced from recently played tracks
@@ -95,6 +97,8 @@ models:
         description: Number of tracks on the album
         data_tests:
           - not_null
+      - name: album_image_url
+        description: URL of the album's largest available cover image
 
   - name: stg_recent_tracks
     description: Recently played tracks from the music schema (legacy)

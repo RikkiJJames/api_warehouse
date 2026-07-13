@@ -20,6 +20,7 @@ class Artist(BaseModel):
     spotify_artist_id: str | None
     artist_name: str | None
     artist_uri: str | None
+    artist_image_url: str | None
 
     model_config = {"from_attributes": True}
 
@@ -31,6 +32,7 @@ class Album(BaseModel):
     album_uri: str | None
     release_date: str | None
     total_tracks: int | None
+    album_image_url: str | None
 
     model_config = {"from_attributes": True}
 
@@ -47,12 +49,14 @@ class TrackEnriched(BaseModel):
     spotify_artist_id: str | None
     artist_name: str | None
     artist_uri: str | None
+    artist_image_url: str | None
     album_id: int | None
     spotify_album_id: str | None
     album_name: str | None
     album_uri: str | None
     release_date: str | None
     total_tracks: int | None
+    album_image_url: str | None
     times_played: int
     most_recent_play: datetime
 

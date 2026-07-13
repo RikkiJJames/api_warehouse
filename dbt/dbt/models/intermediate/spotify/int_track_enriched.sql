@@ -46,6 +46,7 @@ select
     ar.spotify_artist_id,
     ar.artist_name,
     ar.artist_uri,
+    ar.artist_image_url,
 
     al.album_id,
     al.spotify_album_id,
@@ -53,6 +54,7 @@ select
     al.album_uri,
     al.release_date,
     al.total_tracks,
+    al.album_image_url,
 
     coalesce(pc.times_played, 0) as times_played,
     coalesce(pc.plays_last_7_days, 0) as weekly_plays,

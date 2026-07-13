@@ -4,5 +4,6 @@ select
     album_name,
     album_uri,
     release_date,
-    total_tracks
+    total_tracks,
+    album_image_url
 from {{ ref('album') }}

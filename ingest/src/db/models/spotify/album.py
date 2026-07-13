@@ -1,4 +1,5 @@
 from sqlalchemy import ForeignKey, Identity, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.core.db import Base
@@ -20,3 +21,4 @@ class SpotifyAlbum(Base):
     uri: Mapped[str | None] = mapped_column(String, nullable=True)
     release_date: Mapped[str | None] = mapped_column(String, nullable=True)
     total_tracks: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    images: Mapped[list | None] = mapped_column(JSONB, nullable=True)

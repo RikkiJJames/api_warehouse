@@ -36,6 +36,8 @@ models:
         description: Artist name
       - name: artist_uri
         description: Spotify artist URI
+      - name: artist_image_url
+        description: URL of the artist's largest available image
       - name: album_id
         description: Surrogate FK to dim_albums
       - name: spotify_album_id
@@ -48,6 +50,8 @@ models:
         description: Album release date
       - name: total_tracks
         description: Number of tracks on the album
+      - name: album_image_url
+        description: URL of the album's largest available cover image
 
   - name: dim_artists
     description: Artist attributes — one row per unique artist
@@ -68,6 +72,8 @@ models:
           - not_null
       - name: artist_uri
         description: Spotify artist URI
+      - name: artist_image_url
+        description: URL of the artist's largest available image
 
   - name: dim_albums
     description: Album attributes — one row per unique album
@@ -94,6 +100,8 @@ models:
           - not_null
       - name: total_tracks
         description: Number of tracks on the album
+      - name: album_image_url
+        description: URL of the album's largest available cover image
 
   # ── Facts ─────────────────────────────────────────────────────────────────
 

@@ -10,12 +10,14 @@ select
     ar.spotify_artist_id,
     ar.artist_name,
     ar.artist_uri,
+    ar.artist_image_url,
     al.album_id,
     al.spotify_album_id,
     al.album_name,
     al.album_uri,
     al.release_date,
-    al.total_tracks
+    al.total_tracks,
+    al.album_image_url
 from {{ ref('track') }} t
 left join {{ ref('artist') }} ar on t.artist_id = ar.spotify_artist_id
 left join {{ ref('album') }} al on t.album_id = al.spotify_album_id
