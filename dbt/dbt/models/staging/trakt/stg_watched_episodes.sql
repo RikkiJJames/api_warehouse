@@ -7,8 +7,10 @@ select
     coalesce(history_id, id) as history_id,
     -- A missing watched_at is genuinely unknown, not "1970" — leave it null
     -- rather than coalescing to an epoch date that distorts anything sorted
-    -- or charted by this column.
-    watched_at,
+    -- or charted by this column. nullif also guards against a literal
+    -- 1970-01-01 stored as real data in the source table, not just a
+    -- genuinely-missing (NULL) value.
+    nullif(watched_at, timestamp '1970-01-01') as watched_at,
     (show_ids->>'trakt')::int      as trakt_show_id,
     (show_ids->>'tmdb')::int       as show_tmdb_id,
     show_ids->>'imdb'              as show_imdb_id,

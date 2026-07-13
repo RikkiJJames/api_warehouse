@@ -11,12 +11,25 @@ class StorageAdapter:
     # was edited in Trakt after the original event was ingested, so these
     # upsert on the endpoint's unique id instead of ON CONFLICT DO NOTHING.
     UPSERT_CONFIG = {
-        "watched_movies": ("history_id", ["watched_at"]),
-        "watched_episodes": ("history_id", ["watched_at"]),
+        # movie_images/show_images are also listed here — without it, a row
+        # already inserted before the images column existed would never pick
+        # up its poster on a later re-ingest, since it's the same history_id.
+        "watched_movies": ("history_id", ["watched_at", "movie_images"]),
+        "watched_episodes": ("history_id", ["watched_at", "show_images"]),
         # Hardcover ratings/finish dates can change after a book is first
         # synced (e.g. correcting a rating, or finishing a re-read), so
         # re-ingesting the same user_book_id must update these in place.
-        "read_books": ("user_book_id", ["my_rating", "read_started_at", "read_finished_at"]),
+        # book_image is included for the same backfill reason as above.
+        "read_books": ("user_book_id", ["my_rating", "read_started_at", "read_finished_at", "book_image"]),
+        # album/artist/currently_reading/want_to_read otherwise fall through
+        # to plain ON CONFLICT DO NOTHING (see save_records below), which
+        # would never backfill the images column onto a row inserted before
+        # it existed — these three are upserted purely so that backfill can
+        # happen, nothing else about them needs correcting.
+        "album": ("album_id", ["images"]),
+        "artist": ("artist_id", ["images"]),
+        "currently_reading": ("user_book_id", ["book_image"]),
+        "want_to_read": ("user_book_id", ["book_image"]),
     }
 
     def __init__(self, registry, api_id=None):
