@@ -43,6 +43,7 @@ resource "google_cloud_run_v2_job" "dbt" {
           "--port=5432",
           "--health-check",
           "--http-port=8090",
+          "--http-address=0.0.0.0",
           google_sql_database_instance.main.connection_name,
         ]
 
@@ -126,6 +127,7 @@ resource "google_cloud_run_v2_service" "analysis" {
         "--port=5432",
         "--health-check",
         "--http-port=8090",
+        "--http-address=0.0.0.0",
         google_sql_database_instance.main.connection_name,
       ]
 
@@ -191,6 +193,7 @@ resource "google_cloud_run_v2_job" "ingest" {
           "--port=5432",
           "--health-check",
           "--http-port=8090",
+          "--http-address=0.0.0.0",
           google_sql_database_instance.main.connection_name,
         ]
 
