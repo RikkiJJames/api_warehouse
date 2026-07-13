@@ -29,7 +29,12 @@ class StorageAdapter:
         if not db_target:
             return None
 
-        extra = extra or {}
+        # Copy rather than mutate the caller's dict — execution_engine.py's
+        # non-paginated-param branch passes the same object as both `params`
+        # and `extra`, so mutating in place here leaked "api_id" into the
+        # variables of a GraphQL endpoint's next paginated request, which
+        # Hasura then rejected as an undeclared variable.
+        extra = dict(extra or {})
         if self.api_id:
             extra["api_id"] = self.api_id
 
