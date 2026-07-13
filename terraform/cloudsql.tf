@@ -11,6 +11,10 @@ resource "google_sql_database_instance" "main" {
   deletion_protection = var.db_deletion_protection
 
   settings {
+    # Shared-core tiers like db-f1-micro only exist under ENTERPRISE edition —
+    # this project's org policy defaults new instances to ENTERPRISE_PLUS,
+    # which rejects them, so pin it explicitly.
+    edition           = "ENTERPRISE"
     tier              = var.db_instance_tier
     availability_type = "ZONAL"
     disk_size         = 10
