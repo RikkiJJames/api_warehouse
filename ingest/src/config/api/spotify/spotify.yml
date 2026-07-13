@@ -46,6 +46,7 @@ endpoints:
         source_table: spotify.track
         source_column: album_id
         is_distinct: true
+        refetch_if_null: images
 
   - logical_name: artist
     path_template: artists
@@ -58,6 +59,7 @@ endpoints:
         source_table: spotify.track
         source_column: artist_id
         is_distinct: true
+        refetch_if_null: images
 
   - logical_name: saved_tracks
     path_template: me/tracks

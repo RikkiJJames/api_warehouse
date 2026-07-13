@@ -48,3 +48,11 @@ class EndpointParam(Base):
     source_table: Mapped[str | None] = mapped_column(nullable=True)
     source_column: Mapped[str | None] = mapped_column(nullable=True)
     is_distinct: Mapped[bool] = mapped_column(default=False)
+    # For "ids"-batch params only: an id is normally treated as permanently
+    # fetched once its row exists in db_target (metadata like this rarely
+    # changes) — but if a column gets added to that endpoint later, existing
+    # rows would never pick it up since they're never re-requested. Naming a
+    # column here re-includes an id in the next fetch as long as that column
+    # is still null on its row, self-healing exactly that gap without
+    # re-fetching everything else.
+    refetch_if_null: Mapped[str | None] = mapped_column(nullable=True)

@@ -150,6 +150,7 @@ class ApiRepository:
         source_table: str | None = None,
         source_column: str | None = None,
         is_distinct: bool = False,
+        refetch_if_null: str | None = None,
     ) -> EndpointParam:
         logger.info(f"Upserting param '{param_name}' for endpoint {endpoint_id}")
         stmt = select(EndpointParam).where(
@@ -164,6 +165,7 @@ class ApiRepository:
             param.source_table = source_table
             param.source_column = source_column
             param.is_distinct = is_distinct
+            param.refetch_if_null = refetch_if_null
             self.session.commit()
             return param
         param = EndpointParam(
@@ -175,6 +177,7 @@ class ApiRepository:
             source_table=source_table,
             source_column=source_column,
             is_distinct=is_distinct,
+            refetch_if_null=refetch_if_null,
         )
         self.session.add(param)
         self.session.flush()
@@ -234,6 +237,7 @@ class ApiRepository:
                 "source_table": r.source_table,
                 "source_column": r.source_column,
                 "is_distinct": r.is_distinct,
+                "refetch_if_null": r.refetch_if_null,
             }
             for r in rows
         ]
@@ -440,6 +444,29 @@ class ApiRepository:
             text(f'SELECT {distinct_kw}"{column}" FROM "{schema}"."{table}"')
         ).fetchall()
         return [row[0] for row in rows]
+
+    def get_incomplete_ids(self, schema_table: str, id_column: str, check_column: str) -> list[str]:
+        """Return id_column values where check_column is still null — rows
+        that need re-fetching even though their id has already been stored,
+        e.g. after a new column is added to an endpoint that otherwise never
+        revisits ids it's already seen (see refetch_if_null)."""
+        schema, table = schema_table.split(".", 1)
+        logger.info(f"Loading incomplete ids from {schema_table} where {check_column} is null")
+        rows = self.session.execute(
+            text(f'SELECT "{id_column}" FROM "{schema}"."{table}" WHERE "{check_column}" IS NULL')
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def has_incomplete_rows(self, schema_table: str, check_column: str) -> bool:
+        """True if any row in schema_table still has check_column null —
+        used to temporarily suppress a watermark so a watch-history pipeline
+        does a full re-walk instead of only fetching new events, letting
+        upserts backfill a newly-added column onto already-synced rows."""
+        schema, table = schema_table.split(".", 1)
+        row = self.session.execute(
+            text(f'SELECT EXISTS(SELECT 1 FROM "{schema}"."{table}" WHERE "{check_column}" IS NULL)')
+        ).first()
+        return bool(row[0]) if row else False
 
     def get_max_value(self, schema_table: str, column: str):
         """Return the max value of a column in the given table, or None if empty."""

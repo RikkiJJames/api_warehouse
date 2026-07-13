@@ -166,6 +166,21 @@ class ExecutionEngine:
                                     endpoint["db_target"], p["source_column"]
                                 )
                             )
+                            # Self-heals a gap in the above: if a column was
+                            # added to this endpoint after some ids were
+                            # already stored, those rows would otherwise never
+                            # be revisited to backfill it. refetch_if_null
+                            # names that column — any id still null there is
+                            # treated as not-yet-fetched again, without
+                            # re-requesting ids that already have it.
+                            refetch_column = p.get("refetch_if_null")
+                            if refetch_column:
+                                incomplete_ids = set(
+                                    self.registry.get_incomplete_ids(
+                                        endpoint["db_target"], p["source_column"], refetch_column
+                                    )
+                                )
+                                existing_ids -= incomplete_ids
                             new_values = [v for v in source_values if v not in existing_ids]
 
                         if not new_values:

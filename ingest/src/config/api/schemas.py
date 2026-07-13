@@ -14,6 +14,7 @@ class EndpointParamSpec(BaseModel):
     source_table: str | None = None
     source_column: str | None = None
     is_distinct: bool = False
+    refetch_if_null: str | None = None
 
 
 class EndpointConfigSpec(BaseModel):
