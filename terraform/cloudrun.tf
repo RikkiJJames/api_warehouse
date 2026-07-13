@@ -41,12 +41,20 @@ resource "google_cloud_run_v2_job" "dbt" {
         args = [
           "--structured-logs",
           "--port=5432",
+          "--health-check",
+          "--http-port=8090",
           google_sql_database_instance.main.connection_name,
         ]
 
+        # tcp_socket on 5432 is unreliable here: the proxy logs "ready" almost
+        # immediately, but Cloud Run's own TCP probe against a sidecar's port
+        # can still report failure regardless — the dedicated health-check
+        # HTTP server (--health-check) is the pattern Google's own docs use
+        # for this instead.
         startup_probe {
-          tcp_socket {
-            port = 5432
+          http_get {
+            path = "/startup"
+            port = 8090
           }
           period_seconds    = 1
           failure_threshold = 20
@@ -116,12 +124,20 @@ resource "google_cloud_run_v2_service" "analysis" {
       args = [
         "--structured-logs",
         "--port=5432",
+        "--health-check",
+        "--http-port=8090",
         google_sql_database_instance.main.connection_name,
       ]
 
+      # tcp_socket on 5432 is unreliable here: the proxy logs "ready" almost
+      # immediately, but Cloud Run's own TCP probe against a sidecar's port
+      # can still report failure regardless — the dedicated health-check
+      # HTTP server (--health-check) is the pattern Google's own docs use
+      # for this instead.
       startup_probe {
-        tcp_socket {
-          port = 5432
+        http_get {
+          path = "/startup"
+          port = 8090
         }
         period_seconds    = 1
         failure_threshold = 20
@@ -173,12 +189,20 @@ resource "google_cloud_run_v2_job" "ingest" {
         args = [
           "--structured-logs",
           "--port=5432",
+          "--health-check",
+          "--http-port=8090",
           google_sql_database_instance.main.connection_name,
         ]
 
+        # tcp_socket on 5432 is unreliable here: the proxy logs "ready" almost
+        # immediately, but Cloud Run's own TCP probe against a sidecar's port
+        # can still report failure regardless — the dedicated health-check
+        # HTTP server (--health-check) is the pattern Google's own docs use
+        # for this instead.
         startup_probe {
-          tcp_socket {
-            port = 5432
+          http_get {
+            path = "/startup"
+            port = 8090
           }
           period_seconds    = 1
           failure_threshold = 20
