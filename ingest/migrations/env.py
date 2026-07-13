@@ -14,9 +14,11 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Override sqlalchemy.url from .env so credentials aren't hardcoded in alembic.ini
+# sslmode=disable: connects to the cloudsql-proxy sidecar over loopback, which
+# already tunnels to Cloud SQL over TLS+IAM.
 db_url = (
     f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-    f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}?sslmode=require"
+    f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}?sslmode=disable"
 )
 config.set_main_option("sqlalchemy.url", db_url)
 

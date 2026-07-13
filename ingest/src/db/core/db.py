@@ -27,7 +27,10 @@ class Database:
                 "port": os.getenv("DB_PORT", ""),
             }
             self.engine = create_engine(
-                f"postgresql://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}"
+                f"postgresql://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}",
+                # Connects to the cloudsql-proxy sidecar over loopback, which
+                # already tunnels to Cloud SQL over TLS+IAM.
+                connect_args={"sslmode": "disable"},
             )
             logger.info("Database connection established.")
 

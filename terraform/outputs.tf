@@ -20,3 +20,7 @@ output "cloudbuild_connection_status_check" {
 output "runtime_service_account" {
   value = google_service_account.run_jobs.email
 }
+
+output "cloudsql_connection_name" {
+  value = google_sql_database_instance.main.connection_name
+}

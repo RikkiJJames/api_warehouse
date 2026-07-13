@@ -33,6 +33,7 @@ steps:
       - update
       - ${_JOB_NAME}
       - --region=${_REGION}
+      - --container=app
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-dbt:$COMMIT_SHA
 
 images:

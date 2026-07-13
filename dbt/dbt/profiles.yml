@@ -10,4 +10,6 @@ api_warehouse:
       password: "{{ env_var('DB_PASSWORD') }}"
       schema: public
       threads: 4
-      sslmode: require
+      # Connects to the cloudsql-proxy sidecar over loopback, which already
+      # tunnels to Cloud SQL over TLS+IAM.
+      sslmode: disable

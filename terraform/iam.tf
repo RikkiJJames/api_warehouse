@@ -13,7 +13,7 @@ locals {
   # user-managed SA instead — this is also Google's currently recommended
   # approach (BYOSA), not just a workaround.
   cloudbuild_sa_email = google_service_account.cloudbuild_trigger.email
-  cloudbuild_sa        = "serviceAccount:${local.cloudbuild_sa_email}"
+  cloudbuild_sa       = "serviceAccount:${local.cloudbuild_sa_email}"
   # Repository-based (2nd-gen) triggers require an explicit service_account —
   # the implicit default-SA behavior only applies to legacy 1st-gen GitHub
   # triggers, and omitting it fails trigger creation with a generic 400.
@@ -89,10 +89,24 @@ resource "google_secret_manager_secret_iam_member" "run_analysis_db_secrets" {
   member    = "serviceAccount:${google_service_account.run_analysis.email}"
 }
 
+# Needed by the Cloud SQL Auth Proxy sidecar (cloudrun.tf) running under each
+# identity to open an authenticated tunnel to the instance.
+resource "google_project_iam_member" "run_jobs_cloudsql_client" {
+  project = local.project
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.run_jobs.email}"
+}
+
+resource "google_project_iam_member" "run_analysis_cloudsql_client" {
+  project = local.project
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.run_analysis.email}"
+}
+
 resource "google_service_account_iam_member" "cloudbuild_act_as_run_analysis" {
   service_account_id = google_service_account.run_analysis.name
-  role                = "roles/iam.serviceAccountUser"
-  member              = local.cloudbuild_sa
+  role               = "roles/iam.serviceAccountUser"
+  member             = local.cloudbuild_sa
 }
 
 # Public per explicit choice — this is a personal read-only dashboard (no
@@ -124,8 +138,8 @@ resource "google_project_iam_member" "cloudbuild_run_developer" {
 
 resource "google_service_account_iam_member" "cloudbuild_act_as_run_jobs" {
   service_account_id = google_service_account.run_jobs.name
-  role                = "roles/iam.serviceAccountUser"
-  member              = local.cloudbuild_sa
+  role               = "roles/iam.serviceAccountUser"
+  member             = local.cloudbuild_sa
 }
 
 # When a trigger's service_account is set explicitly (required for 2nd-gen

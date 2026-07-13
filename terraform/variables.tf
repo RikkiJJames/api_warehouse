@@ -59,6 +59,24 @@ variable "github_connection_name" {
   default     = "github-connection"
 }
 
+variable "db_instance_tier" {
+  description = "Cloud SQL machine tier for the Postgres instance."
+  type        = string
+  default     = "db-f1-micro"
+}
+
+variable "db_name" {
+  description = "Name of the Postgres database created on the Cloud SQL instance."
+  type        = string
+  default     = "warehouse"
+}
+
+variable "db_deletion_protection" {
+  description = "Whether the Cloud SQL instance blocks terraform destroy/apply from deleting it."
+  type        = bool
+  default     = false
+}
+
 variable "db_secret_names" {
   description = "Secret Manager secret names for dbt/ingest DB connection env vars (values populated out-of-band)."
   type        = list(string)

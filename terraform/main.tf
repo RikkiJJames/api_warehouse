@@ -20,6 +20,7 @@ resource "google_project_service" "apis" {
     "workflows.googleapis.com",
     "workflowexecutions.googleapis.com",
     "cloudscheduler.googleapis.com",
+    "sqladmin.googleapis.com",
   ])
 
   project            = local.project

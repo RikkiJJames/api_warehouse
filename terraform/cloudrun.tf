@@ -1,7 +1,10 @@
-# Terraform only creates the job skeleton with a placeholder image. Cloud Build
-# (see cloudbuild.tf) owns the real image after the first push via
-# `gcloud run jobs update --image=...`, so `template` is excluded from drift
-# detection below.
+# Terraform only creates the "app" container with a placeholder image. Cloud
+# Build (see cloudbuild.tf) owns the real image after the first push via
+# `gcloud run jobs update --image=... --container=app`, so only that
+# container's image is excluded from drift detection below. The
+# cloudsql-proxy sidecar (giving "app" a local Postgres endpoint at
+# 127.0.0.1:5432 backed by google_sql_database_instance.main — see
+# cloudsql.tf) stays fully Terraform-managed.
 resource "google_cloud_run_v2_job" "dbt" {
   project  = local.project
   name     = "api-warehouse-dbt"
@@ -14,7 +17,9 @@ resource "google_cloud_run_v2_job" "dbt" {
       service_account = google_service_account.run_jobs.email
 
       containers {
-        image = "us-docker.pkg.dev/cloudrun/container/job:latest"
+        name       = "app"
+        image      = "us-docker.pkg.dev/cloudrun/container/job:latest"
+        depends_on = ["cloudsql-proxy"]
 
         dynamic "env" {
           for_each = google_secret_manager_secret.db
@@ -29,11 +34,30 @@ resource "google_cloud_run_v2_job" "dbt" {
           }
         }
       }
+
+      containers {
+        name  = "cloudsql-proxy"
+        image = "us-docker.pkg.dev/cloud-sql-connectors/cloud-sql-proxy/cloud-sql-proxy:2"
+        args = [
+          "--structured-logs",
+          "--port=5432",
+          google_sql_database_instance.main.connection_name,
+        ]
+
+        startup_probe {
+          tcp_socket {
+            port = 5432
+          }
+          period_seconds    = 1
+          failure_threshold = 20
+          timeout_seconds   = 1
+        }
+      }
     }
   }
 
   lifecycle {
-    ignore_changes = [template[0].template[0].containers]
+    ignore_changes = [template[0].template[0].containers[0].image]
   }
 
   depends_on = [time_sleep.wait_for_apis]
@@ -61,8 +85,10 @@ resource "google_cloud_run_v2_service" "analysis" {
 
     containers {
       # Placeholder — Cloud Build owns the real image after the first push
-      # via `gcloud run services update --image=...`.
-      image = "us-docker.pkg.dev/cloudrun/container/hello"
+      # via `gcloud run services update --image=... --container=app`.
+      name       = "app"
+      image      = "us-docker.pkg.dev/cloudrun/container/hello"
+      depends_on = ["cloudsql-proxy"]
 
       dynamic "env" {
         for_each = google_secret_manager_secret.db
@@ -77,10 +103,29 @@ resource "google_cloud_run_v2_service" "analysis" {
         }
       }
     }
+
+    containers {
+      name  = "cloudsql-proxy"
+      image = "us-docker.pkg.dev/cloud-sql-connectors/cloud-sql-proxy/cloud-sql-proxy:2"
+      args = [
+        "--structured-logs",
+        "--port=5432",
+        google_sql_database_instance.main.connection_name,
+      ]
+
+      startup_probe {
+        tcp_socket {
+          port = 5432
+        }
+        period_seconds    = 1
+        failure_threshold = 20
+        timeout_seconds   = 1
+      }
+    }
   }
 
   lifecycle {
-    ignore_changes = [template[0].containers]
+    ignore_changes = [template[0].containers[0].image]
   }
 
   depends_on = [time_sleep.wait_for_apis]
@@ -98,7 +143,9 @@ resource "google_cloud_run_v2_job" "ingest" {
       service_account = google_service_account.run_jobs.email
 
       containers {
-        image = "us-docker.pkg.dev/cloudrun/container/job:latest"
+        name       = "app"
+        image      = "us-docker.pkg.dev/cloudrun/container/job:latest"
+        depends_on = ["cloudsql-proxy"]
 
         dynamic "env" {
           for_each = merge(google_secret_manager_secret.db, google_secret_manager_secret.ingest)
@@ -113,11 +160,30 @@ resource "google_cloud_run_v2_job" "ingest" {
           }
         }
       }
+
+      containers {
+        name  = "cloudsql-proxy"
+        image = "us-docker.pkg.dev/cloud-sql-connectors/cloud-sql-proxy/cloud-sql-proxy:2"
+        args = [
+          "--structured-logs",
+          "--port=5432",
+          google_sql_database_instance.main.connection_name,
+        ]
+
+        startup_probe {
+          tcp_socket {
+            port = 5432
+          }
+          period_seconds    = 1
+          failure_threshold = 20
+          timeout_seconds   = 1
+        }
+      }
     }
   }
 
   lifecycle {
-    ignore_changes = [template[0].template[0].containers]
+    ignore_changes = [template[0].template[0].containers[0].image]
   }
 
   depends_on = [time_sleep.wait_for_apis]

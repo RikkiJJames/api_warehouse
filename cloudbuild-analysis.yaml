@@ -25,6 +25,7 @@ steps:
       - update
       - ${_SERVICE_NAME}
       - --region=${_REGION}
+      - --container=app
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/api-warehouse-analysis:$COMMIT_SHA
 
 images:
