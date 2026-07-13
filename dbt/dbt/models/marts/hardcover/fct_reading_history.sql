@@ -3,6 +3,7 @@ select
     book_id,
     title,
     pages,
+    cover_image_url,
     my_rating,
     read_started_at,
     read_finished_at

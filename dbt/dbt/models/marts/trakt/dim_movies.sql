@@ -17,5 +17,6 @@ select
     homepage,
     trailer,
     certification,
-    status
+    status,
+    poster_url
 from {{ ref('int_movies') }}

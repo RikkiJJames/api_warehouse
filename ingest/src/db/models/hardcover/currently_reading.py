@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Identity, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.core.db import Base
@@ -22,5 +23,6 @@ class CurrentlyReading(Base):
     book_title: Mapped[str | None] = mapped_column(String, nullable=True)
     book_pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
     book_release_date: Mapped[str | None] = mapped_column(String, nullable=True)
+    book_image: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     read_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

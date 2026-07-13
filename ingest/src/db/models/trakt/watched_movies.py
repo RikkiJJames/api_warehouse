@@ -36,6 +36,7 @@ class WatchedMovies(Base):
     movie_language: Mapped[str | None] = mapped_column(String, nullable=True)
     movie_genres: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     movie_certification: Mapped[str | None] = mapped_column(String, nullable=True)
+    movie_images: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     my_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     my_rated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

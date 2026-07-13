@@ -9,6 +9,7 @@ select
     book_title          as title,
     book_pages          as pages,
     book_release_date   as release_date,
+    book_image ->> 'url' as cover_image_url,
     created_at
 from source
 where book_title is not null

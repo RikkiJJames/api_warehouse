@@ -129,6 +129,7 @@ def _(data, pd):
             'book_id': pd.Series(dtype='int64'),
             'title': pd.Series(dtype='object'),
             'pages': pd.Series(dtype='float64'),
+            'cover_image_url': pd.Series(dtype='object'),
             'my_rating': pd.Series(dtype='float64'),
             'read_started_at': pd.Series(dtype='datetime64[ns]'),
             'read_finished_at': pd.Series(dtype='datetime64[ns]'),
@@ -216,13 +217,149 @@ def _(history_df, mo, pd, reading_history_df, track_df):
 
 
 @app.cell
+def _(enriched_track_df, mo, pd):
+    _by_artist = (
+        enriched_track_df.groupby('artist_name')['monthly_plays']
+        .sum()
+        .reset_index()
+        .sort_values('monthly_plays', ascending=False)
+    )
+
+    if _by_artist.empty or _by_artist['monthly_plays'].iloc[0] == 0:
+        top_artist_card = mo.callout("No plays logged in the last 30 days yet.", kind="info")
+    else:
+        _top_name = _by_artist.iloc[0]['artist_name']
+        _top_plays = int(_by_artist.iloc[0]['monthly_plays'])
+        _top_rows = enriched_track_df[enriched_track_df['artist_name'] == _top_name]
+        _tracks_this_month = _top_rows[_top_rows['monthly_plays'] > 0]['track_name'].nunique()
+        # Same artist can appear with a null image on some rows if data landed
+        # mid-migration — take the first non-null instead of assuming row 0 has it.
+        _image_candidates = _top_rows['artist_image_url'].dropna()
+        _image_url = _image_candidates.iloc[0] if not _image_candidates.empty else None
+
+        _art = (
+            mo.image(src=_image_url, width=140, height=140, rounded=True, style={"object-fit": "cover"})
+            if _image_url
+            else mo.md("🎧")
+        )
+        top_artist_card = mo.hstack(
+            [
+                _art,
+                mo.vstack(
+                    [
+                        mo.md(f"### {_top_name}"),
+                        mo.md(f"**{_top_plays:,} plays** this month across {_tracks_this_month} track{'s' if _tracks_this_month != 1 else ''}"),
+                    ],
+                    justify="center",
+                ),
+            ],
+            gap=2,
+            align="center",
+        )
+    return (top_artist_card,)
+
+
+@app.cell
+def _(history_df, mo, pd):
+    _movies = (
+        history_df[history_df['media_type'] == 'movie']
+        .dropna(subset=['watched_at'])
+        .sort_values('watched_at', ascending=False)
+        .drop_duplicates(subset=['trakt_id'])
+        .head(5)
+    )
+
+    if _movies.empty:
+        recent_movies_cards = mo.callout("No movies watched yet.", kind="info")
+    else:
+        _cards = []
+        for _, _row in _movies.iterrows():
+            _poster_url = _row.get('poster_url')
+            _poster = (
+                mo.image(src=_poster_url, width=110, height=165, rounded=True, style={"object-fit": "cover"})
+                if pd.notna(_poster_url)
+                else mo.md("🎬")
+            )
+            _genres = _row.get('genres')
+            _genres_text = ", ".join(_genres[:3]) if isinstance(_genres, list) else ""
+            _year = f" ({int(_row['year'])})" if pd.notna(_row.get('year')) else ""
+            _cards.append(
+                mo.vstack(
+                    [
+                        _poster,
+                        mo.md(f"**{_row['title']}**{_year}"),
+                        mo.md(f"Watched {_row['watched_at']:%b %d, %Y}"),
+                        mo.md(f"*{_genres_text}*") if _genres_text else mo.md(""),
+                    ],
+                    align="center",
+                    gap=0.5,
+                )
+            )
+        recent_movies_cards = mo.hstack(_cards, gap=2, wrap=True, justify="start")
+    return (recent_movies_cards,)
+
+
+@app.cell
+def _(mo, pd, reading_history_df):
+    _books = (
+        reading_history_df.dropna(subset=['read_finished_at'])
+        .sort_values('read_finished_at', ascending=False)
+        .head(5)
+    )
+
+    if _books.empty:
+        recent_books_cards = mo.callout("No finished books yet.", kind="info")
+    else:
+        _cards = []
+        for _, _row in _books.iterrows():
+            _cover_url = _row.get('cover_image_url')
+            _cover = (
+                mo.image(src=_cover_url, width=110, height=165, rounded=True, style={"object-fit": "cover"})
+                if pd.notna(_cover_url)
+                else mo.md("📖")
+            )
+            _rating_text = f"★ {_row['my_rating']:.1f}" if pd.notna(_row.get('my_rating')) else ""
+            _cards.append(
+                mo.vstack(
+                    [
+                        _cover,
+                        mo.md(f"**{_row['title']}**"),
+                        mo.md(f"Finished {_row['read_finished_at']:%b %d, %Y}"),
+                        mo.md(_rating_text) if _rating_text else mo.md(""),
+                    ],
+                    align="center",
+                    gap=0.5,
+                )
+            )
+        recent_books_cards = mo.hstack(_cards, gap=2, wrap=True, justify="start")
+    return (recent_books_cards,)
+
+
+@app.cell
+def _(mo, recent_books_cards, recent_movies_cards, top_artist_card):
+    highlights_section = mo.vstack(
+        [
+            mo.md("### 🎧 Most Played Artist This Month"),
+            top_artist_card,
+            mo.md("### 🎬 Recently Watched"),
+            recent_movies_cards,
+            mo.md("### 📚 Recently Finished"),
+            recent_books_cards,
+        ],
+        gap=1,
+    )
+    return (highlights_section,)
+
+
+@app.cell
 def _(alt, history_df, mo, pd, reading_history_df, track_df):
     _spotify_daily = (
         track_df.assign(date=pd.to_datetime(track_df['played_at']).dt.date.astype(str))
         .groupby('date').size().reset_index(name='count').assign(source='Spotify')
     )
     _trakt_daily = (
-        history_df.assign(date=pd.to_datetime(history_df['watched_at']).dt.date.astype(str))
+        history_df.dropna(subset=['watched_at'])
+        .assign(date=pd.to_datetime(history_df['watched_at']).dt.date.astype(str))
         .groupby('date').size().reset_index(name='count').assign(source='Trakt')
     )
     _hardcover_daily = (
@@ -272,28 +409,32 @@ def _(enriched_track_df, metric, top_n):
 
 @app.cell
 def _(alt, enriched_track_df, mo, pd):
-    _pop_mid = 50
-    _plays_mid = int(enriched_track_df['times_played'].median())
-
-    _scatter = alt.Chart(enriched_track_df).mark_circle(size=60, opacity=0.6).encode(
-        x=alt.X('popularity:Q', title='Spotify Popularity (0–100)'),
-        y=alt.Y('times_played:Q', title='Times Played'),
-        tooltip=['track_name', 'artist_name', 'popularity', 'times_played']
+    # A raw popularity-vs-plays scatter doesn't work here: every track in this
+    # dataset has times_played >= 1 by definition (it only exists because you
+    # played it), so there's no "0 plays" region to contrast against — the
+    # mainstream/hidden-gems quadrant framing was meaningless. What's actually
+    # interesting is *how much of your listening* skews mainstream vs. niche,
+    # so this buckets Spotify's own popularity score and weights each bucket
+    # by your real play count.
+    _bins = [0, 20, 40, 60, 80, 101]
+    _labels = ['0–19 (deep cuts)', '20–39', '40–59', '60–79', '80–100 (mainstream)']
+    _agg = (
+        enriched_track_df.assign(
+            popularity_bucket=pd.cut(enriched_track_df['popularity'], bins=_bins, labels=_labels, right=False)
+        )
+        .groupby('popularity_bucket', observed=True)
+        .agg(total_plays=('times_played', 'sum'), track_count=('track_name', 'nunique'))
+        .reset_index()
     )
-    _vline = alt.Chart(pd.DataFrame({'x': [_pop_mid]})).mark_rule(strokeDash=[4, 4], color='gray').encode(x='x:Q')
-    _hline = alt.Chart(pd.DataFrame({'y': [_plays_mid]})).mark_rule(strokeDash=[4, 4], color='gray').encode(y='y:Q')
-    _labels = alt.Chart(pd.DataFrame([
-        {'x': 75, 'y': enriched_track_df['times_played'].max() * 0.95, 'label': 'Mainstream faves'},
-        {'x': 10, 'y': enriched_track_df['times_played'].max() * 0.95, 'label': 'Hidden gems'},
-        {'x': 75, 'y': _plays_mid * 0.1,                               'label': 'Popular, not for you'},
-        {'x': 10, 'y': _plays_mid * 0.1,                               'label': 'Undiscovered'},
-    ])).mark_text(color='gray', fontSize=11, fontStyle='italic').encode(
-        x='x:Q', y='y:Q', text='label:N'
+    popularity_chart = mo.ui.altair_chart(
+        alt.Chart(_agg).mark_bar().encode(
+            x=alt.X('popularity_bucket:N', title='Spotify Popularity Bucket', sort=_labels),
+            y=alt.Y('total_plays:Q', title='Total Plays'),
+            color=alt.Color('popularity_bucket:N', legend=None, sort=_labels),
+            tooltip=['popularity_bucket', 'total_plays', 'track_count'],
+        ).properties(title='Your Listening, by Mainstream-ness', height=350)
     )
-    pop_scatter = mo.ui.altair_chart(
-        (_scatter + _vline + _hline + _labels).properties(title='Popularity vs. Your Play Count', height=350)
-    )
-    return (pop_scatter,)
+    return (popularity_chart,)
 
 
 @app.cell
@@ -460,7 +601,7 @@ def _(
     metric,
     mo,
     number_of_days,
-    pop_scatter,
+    popularity_chart,
     time_listened,
     top_n,
     top_tracks_df,
@@ -472,14 +613,15 @@ def _(
             mo.md("Rank every track you've played, ranked by whichever window matters to you right now."),
             mo.hstack([metric, top_n]),
             top_tracks_df,
-            mo.md("## Popularity vs. Play Count"),
+            mo.md("## Your Listening, by Mainstream-ness"),
             mo.md(
-                "Spotify's global popularity score against how often *you* "
-                "actually play a track — the top-left quadrant is where your "
-                "hidden gems live, top-right is where your taste lines up "
-                "with the mainstream."
+                "How your total plays break down across Spotify's popularity "
+                "scale — a chart of times-played-vs-popularity isn't useful "
+                "on its own here (you'll never have fewer than 1 play on "
+                "anything in this list), but this shows whether your actual "
+                "listening time skews toward deep cuts or mainstream hits."
             ),
-            pop_scatter,
+            popularity_chart,
             mo.md("## Plays by Track Duration"),
             mo.md("Total plays bucketed by track length, so you can see whether you gravitate towards short, medium, or long cuts."),
             duration_chart,
@@ -535,8 +677,11 @@ def _(history_df, media_type_filter):
 
 @app.cell
 def _(alt, history_df, mo):
-    history_df["date"] = history_df["watched_at"].astype(str).str[:10]
-    _daily = history_df.groupby("date").size().reset_index(name="count")
+    _daily = (
+        history_df.dropna(subset=["watched_at"])
+        .assign(date=lambda df: df["watched_at"].astype(str).str[:10])
+        .groupby("date").size().reset_index(name="count")
+    )
     activity_chart = mo.ui.altair_chart(
         alt.Chart(_daily).mark_bar().encode(
             x=alt.X("date:T", title="Date"),
@@ -784,6 +929,7 @@ def _(
 def _(
     combined_activity_chart,
     hardcover_view,
+    highlights_section,
     mo,
     overview_summary,
     spotify_view,
@@ -792,6 +938,7 @@ def _(
     mo.ui.tabs({
         "Overview": mo.vstack([
             overview_summary,
+            highlights_section,
             mo.md("## Daily Activity Across Sources"),
             mo.md(
                 "Every logged Spotify play, Trakt watch, and finished Hardcover "

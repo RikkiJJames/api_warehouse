@@ -13,7 +13,8 @@ with movie_watches as (
         null::int                                       as season,
         null::int                                       as episode_number,
         null::text                                      as network,
-        genres
+        genres,
+        poster_url
     from {{ ref('stg_watched_movies') }}
 ),
 
@@ -35,7 +36,8 @@ episode_watches as (
         season,
         episode_number,
         network,
-        genres
+        genres,
+        poster_url
     from {{ ref('stg_watched_episodes') }}
 )
 

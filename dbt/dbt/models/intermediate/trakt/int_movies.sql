@@ -22,10 +22,13 @@ unique_movies as (
         homepage,
         trailer,
         status,
-        certification
+        certification,
+        poster_url
     from movies
     where trakt_movie_id is not null
-    order by trakt_movie_id, released_date
+    -- Prefer a row that actually has a poster over one that doesn't, since
+    -- the same movie can appear across multiple watch events.
+    order by trakt_movie_id, poster_url is null, released_date
 )
 
 select * from unique_movies

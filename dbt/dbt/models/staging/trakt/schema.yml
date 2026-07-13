@@ -10,9 +10,7 @@ models:
           - unique
           - not_null
       - name: watched_at
-        description: Datetime the movie was watched
-        data_tests:
-          - not_null
+        description: Datetime the movie was watched — null if Trakt didn't report one, rather than an epoch placeholder
       - name: trakt_movie_id
         description: Trakt movie ID extracted from movie_ids JSONB
         data_tests:
@@ -55,6 +53,8 @@ models:
         description: Release status (e.g. released, in production)
       - name: certification
         description: Age certification (e.g. PG-13, R)
+      - name: poster_url
+        description: URL of the movie's poster image
 
   - name: stg_watched_episodes
     description: Cleaned episode watch history with show and episode metadata
@@ -65,9 +65,7 @@ models:
           - unique
           - not_null
       - name: watched_at
-        description: Datetime the episode was watched
-        data_tests:
-          - not_null
+        description: Datetime the episode was watched — null if Trakt didn't report one, rather than an epoch placeholder
       - name: trakt_show_id
         description: Trakt show ID extracted from show_ids JSONB
         data_tests:
@@ -108,6 +106,8 @@ models:
         description: Total number of aired episodes
       - name: show_airs
         description: JSONB with air schedule (day, time, timezone)
+      - name: poster_url
+        description: URL of the show's poster image
       - name: trakt_episode_id
         description: Trakt episode ID
       - name: season

@@ -6,7 +6,8 @@ with currently_reading as (
         book_id,
         title,
         pages,
-        release_date
+        release_date,
+        cover_image_url
     from {{ ref('stg_currently_reading') }}
 ),
 
@@ -18,7 +19,8 @@ want_to_read as (
         book_id,
         title,
         pages,
-        release_date
+        release_date,
+        cover_image_url
     from {{ ref('stg_want_to_read') }}
 )
 

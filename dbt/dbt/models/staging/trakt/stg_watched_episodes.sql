@@ -5,7 +5,10 @@ with source as (
 select
     id,
     coalesce(history_id, id) as history_id,
-    coalesce(watched_at, timestamp '1970-01-01') as watched_at,
+    -- A missing watched_at is genuinely unknown, not "1970" — leave it null
+    -- rather than coalescing to an epoch date that distorts anything sorted
+    -- or charted by this column.
+    watched_at,
     (show_ids->>'trakt')::int      as trakt_show_id,
     (show_ids->>'tmdb')::int       as show_tmdb_id,
     show_ids->>'imdb'              as show_imdb_id,
@@ -24,6 +27,8 @@ select
     show_first_aired,
     show_aired_episodes,
     show_airs,
+    -- Trakt returns poster paths without a scheme (see docs.trakt.tv/docs/images).
+    'https://' || (show_images -> 'poster' ->> 0) as poster_url,
     (episode_ids->>'trakt')::int   as trakt_episode_id,
     episode_season                 as season,
     episode_number,

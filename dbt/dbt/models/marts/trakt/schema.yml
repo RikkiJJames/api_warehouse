@@ -49,6 +49,8 @@ models:
         description: Age certification
       - name: status
         description: Release status
+      - name: poster_url
+        description: URL of the movie's poster image
 
   - name: dim_shows
     description: Show attributes — one row per unique show watched
@@ -94,6 +96,8 @@ models:
         description: Total aired episodes
       - name: show_airs
         description: JSONB air schedule (day, time, timezone)
+      - name: poster_url
+        description: URL of the show's poster image
       - name: content_type
         description: Derived content type from genres
         data_tests:
@@ -217,9 +221,7 @@ models:
           - unique
           - not_null
       - name: watched_at
-        description: Datetime of the watch event
-        data_tests:
-          - not_null
+        description: Datetime of the watch event — null if Trakt didn't report one, rather than an epoch placeholder
       - name: media_type
         description: Type of content (movie, episode, anime)
         data_tests:
@@ -248,6 +250,8 @@ models:
         description: Broadcasting network (null for movies)
       - name: genres
         description: JSONB array of genre strings
+      - name: poster_url
+        description: URL of the movie's or show's poster image
 
   - name: fct_watchlist
     description: Unified watchlist fact — movies and shows on the watchlist ordered by rank

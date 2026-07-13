@@ -30,6 +30,9 @@ endpoints:
             title
             pages
             release_date
+            image {
+              url
+            }
           }
           read: user_book_reads(order_by: {finished_at: desc}, limit: 1) {
             started_at
@@ -65,6 +68,9 @@ endpoints:
             title
             pages
             release_date
+            image {
+              url
+            }
           }
           read: user_book_reads(order_by: {started_at: desc}, limit: 1) {
             started_at
@@ -99,6 +105,9 @@ endpoints:
             title
             pages
             release_date
+            image {
+              url
+            }
           }
         }
       }

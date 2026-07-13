@@ -19,6 +19,8 @@ models:
         description: Page count
       - name: release_date
         description: Book release date
+      - name: cover_image_url
+        description: URL of the book's cover image
 
   # ── Facts ─────────────────────────────────────────────────────────────────
 
@@ -41,6 +43,8 @@ models:
         description: Book title
       - name: pages
         description: Page count
+      - name: cover_image_url
+        description: URL of the book's cover image
       - name: my_rating
         description: Personal rating (0–5)
       - name: read_started_at
@@ -77,6 +81,8 @@ models:
         description: Page count
       - name: release_date
         description: Book release date
+      - name: cover_image_url
+        description: URL of the book's cover image
 
   - name: fct_reading_stats
     description: Yearly reading stats derived from finished books

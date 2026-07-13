@@ -17,5 +17,6 @@ select
     show_first_aired,
     show_aired_episodes,
     show_airs,
+    poster_url,
     content_type
 from {{ ref('int_shows') }}

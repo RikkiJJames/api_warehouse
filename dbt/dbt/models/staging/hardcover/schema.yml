@@ -21,6 +21,8 @@ models:
         description: Page count
       - name: release_date
         description: Book release date
+      - name: cover_image_url
+        description: URL of the book's cover image
       - name: my_rating
         description: Personal rating (0–5)
       - name: read_started_at
@@ -50,6 +52,8 @@ models:
         description: Page count
       - name: release_date
         description: Book release date
+      - name: cover_image_url
+        description: URL of the book's cover image
       - name: read_started_at
         description: Datetime the current read was started
       - name: updated_at
@@ -75,5 +79,7 @@ models:
         description: Page count
       - name: release_date
         description: Book release date
+      - name: cover_image_url
+        description: URL of the book's cover image
       - name: created_at
         description: Datetime added to the want-to-read list
