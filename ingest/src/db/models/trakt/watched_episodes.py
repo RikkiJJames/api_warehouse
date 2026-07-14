@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Identity, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Computed, DateTime, Float, ForeignKey, Identity, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,6 +33,12 @@ class WatchedEpisodes(Base):
     show_title: Mapped[str | None] = mapped_column(String, nullable=True)
     show_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     show_ids: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # show_details's path_id param queries this directly against the raw
+    # table (dbt's staging layer already extracts the same value, but that
+    # alias doesn't exist here) — same pattern as recent_tracks.listened_at.
+    trakt_show_id: Mapped[int | None] = mapped_column(
+        Integer, Computed("(show_ids->>'trakt')::integer", persisted=True), nullable=True
+    )
     show_overview: Mapped[str | None] = mapped_column(String, nullable=True)
     show_network: Mapped[str | None] = mapped_column(String, nullable=True)
     show_status: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -274,10 +274,14 @@ class ApiRepository:
         col_rows = self.session.execute(
             text(
                 "SELECT column_name FROM information_schema.columns "
-                "WHERE table_schema = :s AND table_name = :t"
+                "WHERE table_schema = :s AND table_name = :t AND is_generated = 'NEVER'"
             ),
             {"s": schema, "t": table},
         ).fetchall()
+        # Generated columns (e.g. trakt_movie_id, listened_at) can never be
+        # INSERT targets, so they're excluded here — otherwise a table with
+        # more than one column ending in "_id" makes the id_remap fallback
+        # below pick a candidate at random via Python's set iteration order.
         valid_cols = {r[0] for r in col_rows} - {"id"}
         preferred = f"{table}_id"
         id_remap = preferred if preferred in valid_cols else next(
