@@ -54,7 +54,7 @@ endpoints:
         source_column: trakt_movie_id
         target_column: ids_trakt
         is_distinct: true
-        refetch_if_null: images
+        refetch_if_null: images_poster
       - param_name: extended
         default_value: "full"
 
@@ -70,7 +70,7 @@ endpoints:
         source_column: trakt_show_id
         target_column: ids_trakt
         is_distinct: true
-        refetch_if_null: images
+        refetch_if_null: images_poster
       - param_name: extended
         default_value: "full"
 

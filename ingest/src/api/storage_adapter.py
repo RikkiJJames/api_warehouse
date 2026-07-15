@@ -28,8 +28,8 @@ class StorageAdapter:
         "artist": ("artist_id", ["images"]),
         "currently_reading": ("user_book_id", ["book_image"]),
         "want_to_read": ("user_book_id", ["book_image"]),
-        "movie_details": ("ids_trakt", ["images"]),
-        "show_details": ("ids_trakt", ["images"]),
+        "movie_details": ("ids_trakt", ["images_poster", "images_clearart", "images_thumb"]),
+        "show_details": ("ids_trakt", ["images_poster", "images_clearart", "images_thumb"]),
     }
 
     def __init__(self, registry, api_id=None):

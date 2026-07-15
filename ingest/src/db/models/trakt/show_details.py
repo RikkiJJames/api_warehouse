@@ -17,4 +17,8 @@ class ShowDetails(Base):
     id: Mapped[int] = mapped_column(Identity(start=1), primary_key=True)
     api_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("config.api.id"), nullable=True)
     ids_trakt: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    images: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # See movie_details.py — flatten_record explodes the top-level "images"
+    # object into per-type keys, so we store those directly instead.
+    images_poster: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    images_clearart: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    images_thumb: Mapped[list | None] = mapped_column(JSONB, nullable=True)

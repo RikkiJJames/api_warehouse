@@ -22,4 +22,11 @@ class MovieDetails(Base):
     # flattens to "ids_trakt", since there's no wrapping "movie" key here
     # unlike the history endpoints.
     ids_trakt: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    images: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # flatten_record flattens one level of every dict it finds, including the
+    # response's top-level "images" object — so it never survives as a single
+    # "images" key, it arrives pre-split into images_poster/images_clearart/etc.
+    # Named to match that natural output rather than special-casing the
+    # generic flattener, same as ids_trakt above.
+    images_poster: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    images_clearart: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    images_thumb: Mapped[list | None] = mapped_column(JSONB, nullable=True)
