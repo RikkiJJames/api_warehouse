@@ -168,15 +168,38 @@ def _(data, pd):
 
 
 @app.cell
-def _(history_df, mo, pd, reading_history_df, track_df):
+def _(data, pd):
+    # Empty until the Google Health OAuth setup is complete and the ingest
+    # pipeline has actually run — same empty-frame fallback as the Hardcover
+    # frames above, so the stat card/chart below render (empty) instead of
+    # erroring.
+    activity_df = data['daily_activity']
+    if activity_df.empty:
+        activity_df = pd.DataFrame({
+            'date': pd.Series(dtype='datetime64[ns]'),
+            'steps': pd.Series(dtype='int64'),
+            'distance_meters': pd.Series(dtype='float64'),
+            'total_calories': pd.Series(dtype='float64'),
+            'active_minutes': pd.Series(dtype='int64'),
+        })
+    else:
+        activity_df['date'] = pd.to_datetime(activity_df['date'])
+    return (activity_df,)
+
+
+@app.cell
+def _(activity_df, history_df, mo, pd, reading_history_df, track_df):
     _spotify_since = track_df['played_at'].min()
     _trakt_since = history_df['watched_at'].min()
     _hardcover_since = reading_history_df['read_finished_at'].min()
+    _health_since = activity_df['date'].min()
 
     def _since_caption(ts, verb):
         if pd.isna(ts):
             return f"nothing {verb} yet"
         return f"since {ts:%b %d, %Y}"
+
+    _avg_steps = activity_df['steps'].mean()
 
     overview_stats = mo.hstack(
         [
@@ -198,6 +221,12 @@ def _(history_df, mo, pd, reading_history_df, track_df):
                 caption=_since_caption(_hardcover_since, "finished"),
                 bordered=True,
             ),
+            mo.stat(
+                value=f"{_avg_steps:,.0f}" if pd.notna(_avg_steps) else "—",
+                label="Avg daily steps",
+                caption=_since_caption(_health_since, "logged"),
+                bordered=True,
+            ),
         ],
         gap=2,
     )
@@ -206,7 +235,7 @@ def _(history_df, mo, pd, reading_history_df, track_df):
         [
             mo.md("## At a Glance"),
             mo.md(
-                "A quick pulse check across all three sources before diving into "
+                "A quick pulse check across all four sources before diving into "
                 "the tabs above — each card shows how much history has been "
                 "captured so far and how far back it goes."
             ),
@@ -403,6 +432,56 @@ def _(alt, history_df, mo, pd, reading_history_df, track_df):
         ).properties(title='Daily Activity — Spotify Plays, Trakt Watches & Hardcover Finishes', height=350)
     )
     return (combined_activity_chart,)
+
+
+@app.cell
+def _(mo):
+    fitness_metric = mo.ui.dropdown(
+        options={
+            "Steps": "steps",
+            "Distance (km)": "distance_meters",
+            "Calories Burned": "total_calories",
+            "Active Minutes": "active_minutes",
+        },
+        value="Steps",
+        label="Metric",
+    )
+    return (fitness_metric,)
+
+
+@app.cell
+def _(activity_df, alt, fitness_metric, mo, pd):
+    if activity_df.empty:
+        fitness_chart = mo.callout(
+            "No Google Health data yet — steps/distance/calories/active "
+            "minutes will show up here once that ingestion is set up and "
+            "has run.",
+            kind="info",
+        )
+    else:
+        _col = fitness_metric.value
+        _plot_df = activity_df.copy()
+        if _col == "distance_meters":
+            _plot_df[_col] = _plot_df[_col] / 1000
+
+        _label = next(
+            label for label, value in {
+                "Steps": "steps",
+                "Distance (km)": "distance_meters",
+                "Calories Burned": "total_calories",
+                "Active Minutes": "active_minutes",
+            }.items()
+            if value == _col
+        )
+
+        fitness_chart = mo.ui.altair_chart(
+            alt.Chart(_plot_df).mark_bar().encode(
+                x=alt.X('date:T', title='Date'),
+                y=alt.Y(f'{_col}:Q', title=_label),
+                tooltip=['date', alt.Tooltip(f'{_col}:Q', title=_label, format=',.0f')],
+            ).properties(title=f'Daily {_label}', height=350)
+        )
+    return (fitness_chart,)
 
 
 @app.cell
@@ -953,6 +1032,8 @@ def _(
 @app.cell
 def _(
     combined_activity_chart,
+    fitness_chart,
+    fitness_metric,
     hardcover_view,
     highlights_section,
     mo,
@@ -977,6 +1058,13 @@ def _(
                 "leaderboards and filters.",
                 kind="info",
             ),
+            mo.md("## Fitness"),
+            mo.md(
+                "Daily activity from the Google Health API — steps, distance, "
+                "calories burned, and active minutes."
+            ),
+            fitness_metric,
+            fitness_chart,
         ]),
         "Spotify": spotify_view,
         "Trakt": trakt_view,
