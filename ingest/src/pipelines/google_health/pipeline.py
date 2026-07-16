@@ -71,8 +71,12 @@ class GoogleHealthPipeline(ApiPipeline):
 
             params[logical_name] = {
                 "range": {
-                    "start": {"year": start.year, "month": start.month, "day": start.day},
-                    "end": {"year": end.year, "month": end.month, "day": end.day},
+                    # range.start/end are CivilDateTime, not a bare date —
+                    # {date: {year, month, day}, time: <optional, omitted>}.
+                    # Sending {year, month, day} directly here caused every
+                    # dailyRollUp call to 400.
+                    "start": {"date": {"year": start.year, "month": start.month, "day": start.day}},
+                    "end": {"date": {"year": end.year, "month": end.month, "day": end.day}},
                 },
                 "windowSizeDays": 1,
             }

@@ -190,6 +190,12 @@ class ExecutionClient:
                 await asyncio.sleep(retry_after)
                 continue
 
+            if response.status_code >= 400:
+                # raise_for_status()'s message is just the status line — the
+                # response body (e.g. Google's "Invalid JSON payload...
+                # Cannot find field X" detail) is what actually explains a
+                # 400, and is otherwise lost once this raises.
+                logger.warning(f"{response.status_code} from {endpoint}: {response.text}")
             response.raise_for_status()
             self._pagination = {"page_count": 1, "item_count": 0}
             return response.json()
