@@ -13,11 +13,22 @@ class GoogleHealthPipeline(ApiPipeline):
     # run re-touch it — otherwise a day whose sync was still trickling in
     # when we last fetched it would never be revisited to pick up the rest.
     WATERMARK_OVERLAP_DAYS = 1
-    # ~3 years — comfortably under dailyRollUp's 10k-point-per-page limit
-    # for a single request, so no pagination handling is needed.
+    # ~3 years of history to backfill on the very first run.
     INITIAL_LOOKBACK_DAYS = 1095
 
     DATA_TYPES = ["steps", "distance", "total-calories", "active-minutes"]
+
+    # Google enforces a max query duration per data type — window_size_days
+    # * page_size can't exceed this many days — confirmed via the API's own
+    # 400 responses (INVALID_ROLLUP_QUERY_DURATION), not documented up
+    # front. A multi-year backfill has to be split into this many separate
+    # requests per data type rather than one.
+    MAX_DURATION_DAYS = {
+        "steps": 90,
+        "distance": 90,
+        "total_calories": 14,
+        "active_minutes": 14,
+    }
 
     def __init__(self):
         super().__init__("google_health")
@@ -53,6 +64,20 @@ class GoogleHealthPipeline(ApiPipeline):
             self._ensure_auth()
         return f"Bearer {self.token_manager.get_access_token()}"
 
+    @staticmethod
+    def _date_body(start, end) -> dict:
+        return {
+            "range": {
+                # range.start/end are CivilDateTime, not a bare date —
+                # {date: {year, month, day}, time: <optional, omitted>}.
+                # Sending {year, month, day} directly here caused every
+                # dailyRollUp call to 400.
+                "start": {"date": {"year": start.year, "month": start.month, "day": start.day}},
+                "end": {"date": {"year": end.year, "month": end.month, "day": end.day}},
+            },
+            "windowSizeDays": 1,
+        }
+
     def get_extra_params(self) -> dict:
         today = datetime.now(timezone.utc).date()
         params = {}
@@ -69,17 +94,18 @@ class GoogleHealthPipeline(ApiPipeline):
             # end is exclusive, so +1 day includes today.
             end = today + timedelta(days=1)
 
-            params[logical_name] = {
-                "range": {
-                    # range.start/end are CivilDateTime, not a bare date —
-                    # {date: {year, month, day}, time: <optional, omitted>}.
-                    # Sending {year, month, day} directly here caused every
-                    # dailyRollUp call to 400.
-                    "start": {"date": {"year": start.year, "month": start.month, "day": start.day}},
-                    "end": {"date": {"year": end.year, "month": end.month, "day": end.day}},
-                },
-                "windowSizeDays": 1,
-            }
+            # Split [start, end) into <= MAX_DURATION_DAYS-wide chunks — the
+            # engine makes one sequential request per chunk (see its
+            # isinstance(extra_for_endpoint, list) handling).
+            max_days = self.MAX_DURATION_DAYS[logical_name]
+            chunks = []
+            chunk_start = start
+            while chunk_start < end:
+                chunk_end = min(chunk_start + timedelta(days=max_days), end)
+                chunks.append(self._date_body(chunk_start, chunk_end))
+                chunk_start = chunk_end
+
+            params[logical_name] = chunks
 
         return params
 

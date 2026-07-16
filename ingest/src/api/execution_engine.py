@@ -151,7 +151,13 @@ class ExecutionEngine:
                 for p in params
                 if p.get("default_value") and not p.get("source_table")
             }
-            static_params.update(extra_params.get(logical_name, {}))
+            # A list here (e.g. Google Health's per-data-type max query
+            # duration forcing a date range into several requests) is
+            # handled specially in the no-db_params branch below instead of
+            # being merged in directly.
+            extra_for_endpoint = extra_params.get(logical_name, {})
+            if isinstance(extra_for_endpoint, dict):
+                static_params.update(extra_for_endpoint)
 
             try:
                 if db_params:
@@ -319,6 +325,38 @@ class ExecutionEngine:
                             break
                         except Exception as e:
                             logger.warning(f"{logical_name}[{value}] failed: {e}")
+
+                    results[logical_name] = {"status": "ok", "count": total}
+
+                elif isinstance(extra_for_endpoint, list):
+                    # Each chunk is a full param dict (e.g. Google Health's
+                    # per-request date range) — requests are sequential and
+                    # independent, so one bad chunk doesn't abort the rest,
+                    # same resilience as the ids/path_id loops above.
+                    total = 0
+                    for i, chunk in enumerate(extra_for_endpoint):
+                        if i > 0:
+                            await self.api.throttle()
+
+                        path = self.resolver.resolve(template)
+                        chunk_params = {**static_params, **chunk}
+
+                        try:
+                            items = await self.process_endpoint(
+                                endpoint, path, params=chunk_params, extra=chunk_params
+                            )
+                            total += len(items)
+                            print(f"{logical_name}[chunk {i + 1}/{len(extra_for_endpoint)}] → {len(items)}")
+                        except RateLimitExceeded as e:
+                            logger.warning(
+                                f"{logical_name} rate-limited on chunk {i + 1}/{len(extra_for_endpoint)} "
+                                f"({e}); skipping remaining chunks"
+                            )
+                            break
+                        except Exception as e:
+                            logger.warning(
+                                f"{logical_name}[chunk {i + 1}/{len(extra_for_endpoint)}] failed: {e}"
+                            )
 
                     results[logical_name] = {"status": "ok", "count": total}
 
