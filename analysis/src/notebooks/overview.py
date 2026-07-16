@@ -485,6 +485,192 @@ def _(activity_df, alt, fitness_metric, mo, pd):
 
 
 @app.cell
+def _(activity_df, mo, pd):
+    if activity_df.empty or activity_df['steps'].notna().sum() == 0:
+        fitness_stats = mo.callout(
+            "No Google Health data yet — stats will show up here once "
+            "that ingestion is set up and has run.",
+            kind="info",
+        )
+    else:
+        _steps = activity_df.dropna(subset=['steps'])
+        _max_idx = _steps['steps'].idxmax()
+        _max_steps = _steps.loc[_max_idx, 'steps']
+        _max_date = _steps.loc[_max_idx, 'date']
+        _avg_steps = _steps['steps'].mean()
+        _days_10k = int((_steps['steps'] >= 10000).sum())
+
+        _today = pd.Timestamp.now().normalize()
+        _this_year_start = pd.Timestamp(year=_today.year, month=1, day=1)
+        _last_year_start = pd.Timestamp(year=_today.year - 1, month=1, day=1)
+        # Day-offset instead of constructing an exact same month/day date,
+        # so this doesn't blow up on Feb 29 in a non-leap comparison year.
+        _day_offset = (_today - _this_year_start).days
+        _last_year_end = _last_year_start + pd.Timedelta(days=_day_offset)
+
+        _this_ytd = _steps[_steps['date'] >= _this_year_start]
+        _last_ytd = _steps[
+            (_steps['date'] >= _last_year_start) & (_steps['date'] <= _last_year_end)
+        ]
+
+        _this_avg = _this_ytd['steps'].mean()
+        _last_avg = _last_ytd['steps'].mean()
+        if pd.notna(_this_avg) and pd.notna(_last_avg) and _last_avg > 0:
+            _yoy_text = f"{(_this_avg - _last_avg) / _last_avg * 100:+.1f}%"
+            _yoy_caption = "vs same period last year"
+        else:
+            _yoy_text = "—"
+            _yoy_caption = "not enough history yet"
+
+        _total_this_year = _this_ytd['steps'].sum()
+        _avg_active = activity_df['active_minutes'].mean()
+
+        fitness_stats = mo.vstack(
+            [
+                mo.hstack(
+                    [
+                        mo.stat(
+                            value=f"{_max_steps:,.0f}",
+                            label="Max Steps",
+                            caption=f"on {_max_date:%b %d, %Y}",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"{_avg_steps:,.0f}",
+                            label="Avg Daily Steps",
+                            caption="all-time",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=_yoy_text,
+                            label="Steps YoY",
+                            caption=_yoy_caption,
+                            bordered=True,
+                        ),
+                    ],
+                    gap=2,
+                ),
+                mo.hstack(
+                    [
+                        mo.stat(
+                            value=f"{_total_this_year:,.0f}",
+                            label="Total Steps This Year",
+                            caption=f"{_today.year}",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"{_avg_active:,.0f}" if pd.notna(_avg_active) else "—",
+                            label="Avg Active Minutes",
+                            caption="per day",
+                            bordered=True,
+                        ),
+                        mo.stat(
+                            value=f"{_days_10k:,}",
+                            label="Days ≥ 10k Steps",
+                            caption="all-time",
+                            bordered=True,
+                        ),
+                    ],
+                    gap=2,
+                ),
+            ],
+            gap=1,
+        )
+    return (fitness_stats,)
+
+
+@app.cell
+def _(activity_df, alt, mo):
+    if activity_df.empty or activity_df['steps'].notna().sum() == 0:
+        fitness_weekday_chart = mo.callout("No Google Health data yet.", kind="info")
+    else:
+        _dow_df = activity_df.dropna(subset=['steps']).copy()
+        _dow_df['weekday'] = _dow_df['date'].dt.day_name()
+        _weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        _dow_avg = (
+            _dow_df.groupby('weekday')['steps'].mean()
+            .reindex(_weekday_order)
+            .reset_index()
+        )
+
+        fitness_weekday_chart = mo.ui.altair_chart(
+            alt.Chart(_dow_avg).mark_bar().encode(
+                x=alt.X('weekday:N', title='Day of Week', sort=_weekday_order),
+                y=alt.Y('steps:Q', title='Avg Steps'),
+                tooltip=['weekday', alt.Tooltip('steps:Q', title='Avg Steps', format=',.0f')],
+            ).properties(title='Average Steps by Day of Week', height=300)
+        )
+    return (fitness_weekday_chart,)
+
+
+@app.cell
+def _(activity_df, alt, mo):
+    if activity_df.empty or activity_df['steps'].notna().sum() == 0:
+        fitness_monthly_chart = mo.callout("No Google Health data yet.", kind="info")
+    else:
+        _monthly_df = activity_df.dropna(subset=['steps']).copy()
+        _monthly_df['month'] = _monthly_df['date'].dt.to_period('M').dt.to_timestamp()
+        _monthly_totals = _monthly_df.groupby('month')['steps'].sum().reset_index()
+
+        fitness_monthly_chart = mo.ui.altair_chart(
+            alt.Chart(_monthly_totals).mark_bar().encode(
+                x=alt.X('month:T', title='Month'),
+                y=alt.Y('steps:Q', title='Total Steps'),
+                tooltip=[
+                    alt.Tooltip('month:T', title='Month', format='%b %Y'),
+                    alt.Tooltip('steps:Q', title='Total Steps', format=',.0f'),
+                ],
+            ).properties(title='Total Steps by Month', height=300)
+        )
+    return (fitness_monthly_chart,)
+
+
+@app.cell
+def _(activity_df):
+    fitness_recent_df = (
+        activity_df.dropna(subset=['date'])
+        .sort_values('date', ascending=False)
+        .head(30)
+        [['date', 'steps', 'distance_meters', 'total_calories', 'active_minutes']]
+        .reset_index(drop=True)
+    )
+    return (fitness_recent_df,)
+
+
+@app.cell
+def _(
+    fitness_chart,
+    fitness_metric,
+    fitness_monthly_chart,
+    fitness_recent_df,
+    fitness_stats,
+    fitness_weekday_chart,
+    mo,
+):
+    fitness_view = mo.ui.tabs({
+        "Overview": mo.vstack([
+            mo.md("## At a Glance"),
+            fitness_stats,
+            mo.md("## Daily Trend"),
+            fitness_metric,
+            fitness_chart,
+        ]),
+        "Trends": mo.vstack([
+            mo.md("## Average Steps by Day of Week"),
+            mo.md("Which days you tend to move the most, averaged across all history."),
+            fitness_weekday_chart,
+            mo.md("## Total Steps by Month"),
+            fitness_monthly_chart,
+        ]),
+        "Data": mo.vstack([
+            mo.md("## Recent Daily Activity"),
+            fitness_recent_df,
+        ]),
+    })
+    return (fitness_view,)
+
+
+@app.cell
 def _(mo):
     metric = mo.ui.dropdown(
         options={
@@ -1032,8 +1218,7 @@ def _(
 @app.cell
 def _(
     combined_activity_chart,
-    fitness_chart,
-    fitness_metric,
+    fitness_view,
     hardcover_view,
     highlights_section,
     mo,
@@ -1054,21 +1239,15 @@ def _(
             combined_activity_chart,
             mo.callout(
                 "Hover any point for the exact count, or switch to the "
-                "Spotify, Trakt, or Hardcover tabs above for source-specific "
-                "leaderboards and filters.",
+                "Spotify, Trakt, Hardcover, or Fitness tabs above for "
+                "source-specific leaderboards and filters.",
                 kind="info",
             ),
-            mo.md("## Fitness"),
-            mo.md(
-                "Daily activity from the Google Health API — steps, distance, "
-                "calories burned, and active minutes."
-            ),
-            fitness_metric,
-            fitness_chart,
         ]),
         "Spotify": spotify_view,
         "Trakt": trakt_view,
         "Hardcover": hardcover_view,
+        "Fitness": fitness_view,
     })
     return
 
