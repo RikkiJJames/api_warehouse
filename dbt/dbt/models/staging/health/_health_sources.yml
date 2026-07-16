@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: health
+    schema: health
+    description: Personal activity data via the Google Health API (Fitbit's successor)
+    tables:
+      - name: steps
+        description: One row per day, total step count
+      - name: distance
+        description: One row per day, total distance in meters
+      - name: total_calories
+        description: One row per day, total calories burned
+      - name: active_minutes
+        description: One row per day, active minutes by activity level

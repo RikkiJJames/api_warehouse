@@ -1,0 +1,48 @@
+name: google_health
+description: Personal health/fitness data via the Google Health API (Fitbit's successor)
+base_url: https://health.googleapis.com
+
+api_config:
+  - parameter_name: client_id
+    parameter_value: !env_optional GOOGLE_HEALTH_CLIENT_ID
+  - parameter_name: client_secret
+    parameter_value: !env_optional GOOGLE_HEALTH_CLIENT_SECRET
+  - parameter_name: refresh_token
+    parameter_value: !env_optional GOOGLE_HEALTH_REFRESH_TOKEN
+
+# Each of these calls dailyRollUp for one data type. The request body
+# (range/windowSizeDays) is entirely supplied at runtime by the pipeline's
+# get_extra_params() — a rolling date-range watermark, same idea as Trakt's
+# start_at — so no static params are declared here.
+endpoints:
+  - logical_name: steps
+    path_template: v4/users/me/dataTypes/steps/dataPoints:dailyRollUp
+    method: POST_JSON
+    exec_order: 1
+    is_active: true
+    db_target: health.steps
+    response_path: rollupDataPoints
+
+  - logical_name: distance
+    path_template: v4/users/me/dataTypes/distance/dataPoints:dailyRollUp
+    method: POST_JSON
+    exec_order: 2
+    is_active: true
+    db_target: health.distance
+    response_path: rollupDataPoints
+
+  - logical_name: total_calories
+    path_template: v4/users/me/dataTypes/total-calories/dataPoints:dailyRollUp
+    method: POST_JSON
+    exec_order: 3
+    is_active: true
+    db_target: health.total_calories
+    response_path: rollupDataPoints
+
+  - logical_name: active_minutes
+    path_template: v4/users/me/dataTypes/active-minutes/dataPoints:dailyRollUp
+    method: POST_JSON
+    exec_order: 4
+    is_active: true
+    db_target: health.active_minutes
+    response_path: rollupDataPoints

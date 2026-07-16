@@ -46,10 +46,16 @@ class ExecutionEngine:
         all_items = []
         limit = int((params or {}).get("limit", 50))
         is_graphql = endpoint.get("method") == "POST"
+        # Plain JSON-body POST, no GraphQL envelope and no query-param-style
+        # pagination (e.g. Google Health API's dailyRollUp, whose request
+        # body — range/windowSizeDays — comes straight from params).
+        is_post_json = endpoint.get("method") == "POST_JSON"
 
         # First request
         logger.info("Retrieving Page 1")
-        if is_graphql:
+        if is_post_json:
+            raw = await self.api.post_json_endpoint(path, body=params or {})
+        elif is_graphql:
             # GraphQL variables are type-checked against the schema (Int vs
             # String), unlike REST query params — limit/offset must be ints,
             # not the raw string default_values config stores everything as.
@@ -70,6 +76,14 @@ class ExecutionEngine:
         all_items.extend(items)
         logger.info(f"Fetched {len(items)} items from {path} (page 1/{total_pages}, total={item_count})")
         self.storage.save(endpoint, endpoint["logical_name"], items, extra)
+
+        if is_post_json:
+            # dailyRollUp's page size (up to 10000 points) comfortably covers
+            # any realistic personal date range in one request, so
+            # nextPageToken pagination isn't implemented here.
+            if not endpoint.get("db_target"):
+                self.context.store(endpoint["logical_name"], all_items)
+            return all_items
 
         # Offset-based pagination (GraphQL, e.g. Hardcover): keep requesting
         # while a full page came back, since there's no total-count/next-link

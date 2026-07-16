@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: fct_daily_activity
+    description: One row per day, combining steps/distance/calories/active minutes from the Google Health API
+    columns:
+      - name: date
+        data_tests:
+          - unique
+          - not_null
+      - name: steps
+        description: Total steps for the day
+      - name: distance_meters
+        description: Total distance for the day, in meters
+      - name: total_calories
+        description: Total calories burned for the day (kcal)
+      - name: active_minutes
+        description: Total active minutes for the day, across all activity levels

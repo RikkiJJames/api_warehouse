@@ -97,6 +97,9 @@ variable "ingest_secret_names" {
     "TRAKT_CLIENT_SECRET",
     "TRAKT_REFRESH_TOKEN",
     "TRAKT_REDIRECT_URL",
+    "GOOGLE_HEALTH_CLIENT_ID",
+    "GOOGLE_HEALTH_CLIENT_SECRET",
+    "GOOGLE_HEALTH_REFRESH_TOKEN",
   ]
 }
 

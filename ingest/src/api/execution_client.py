@@ -156,3 +156,40 @@ class ExecutionClient:
 
             self._pagination = {"page_count": 1, "item_count": 0}
             return body
+
+    async def post_json_endpoint(
+        self,
+        endpoint: str,
+        body: dict,
+        max_retries: int = 3,
+        max_retry_after: float = 60,
+    ) -> dict:
+        """Plain JSON-body POST — unlike post_endpoint above, no GraphQL
+        query/variables envelope and no top-level "errors" array convention
+        (e.g. Google Health API's dailyRollUp, which just wants the request
+        object as the body directly)."""
+        logger.info(f"POST {endpoint or self.base_url}")
+
+        for attempt in range(max_retries + 1):
+            response = await self.client.post(endpoint, json=body)
+
+            if response.status_code == 429:
+                retry_after = float(response.headers.get("Retry-After", 1))
+
+                if attempt >= max_retries or retry_after > max_retry_after:
+                    logger.warning(
+                        f"429 from {endpoint}; giving up "
+                        f"(retry_after={retry_after}s, attempt={attempt + 1}/{max_retries + 1})"
+                    )
+                    raise RateLimitExceeded(endpoint, retry_after)
+
+                logger.warning(
+                    f"429 from {endpoint}, retrying in {retry_after}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                await asyncio.sleep(retry_after)
+                continue
+
+            response.raise_for_status()
+            self._pagination = {"page_count": 1, "item_count": 0}
+            return response.json()

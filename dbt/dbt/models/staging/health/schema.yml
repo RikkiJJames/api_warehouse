@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: stg_steps
+    description: One row per day, total step count
+    columns:
+      - name: date
+        data_tests:
+          - unique
+          - not_null
+      - name: steps
+        description: Total steps for the day
+
+  - name: stg_distance
+    description: One row per day, total distance walked/run
+    columns:
+      - name: date
+        data_tests:
+          - unique
+          - not_null
+      - name: distance_meters
+        description: Total distance for the day, in meters
+
+  - name: stg_total_calories
+    description: One row per day, total calories burned
+    columns:
+      - name: date
+        data_tests:
+          - unique
+          - not_null
+      - name: total_calories
+        description: Total calories burned for the day (kcal)
+
+  - name: stg_active_minutes
+    description: One row per day, active minutes summed across all activity levels
+    columns:
+      - name: date
+        data_tests:
+          - unique
+          - not_null
+      - name: active_minutes
+        description: Total active minutes for the day, across all activity levels

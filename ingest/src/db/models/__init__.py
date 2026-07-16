@@ -26,3 +26,7 @@ from src.db.models.trakt.show_details import ShowDetails  # noqa: F401
 from src.db.models.hardcover.read_books import ReadBooks  # noqa: F401
 from src.db.models.hardcover.currently_reading import CurrentlyReading  # noqa: F401
 from src.db.models.hardcover.want_to_read import WantToRead  # noqa: F401
+from src.db.models.health.steps import Steps  # noqa: F401
+from src.db.models.health.distance import Distance  # noqa: F401
+from src.db.models.health.total_calories import TotalCalories  # noqa: F401
+from src.db.models.health.active_minutes import ActiveMinutes  # noqa: F401

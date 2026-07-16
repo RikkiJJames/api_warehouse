@@ -30,6 +30,15 @@ class StorageAdapter:
         "want_to_read": ("user_book_id", ["book_image"]),
         "movie_details": ("ids_trakt", ["images_poster", "images_clearart", "images_thumb"]),
         "show_details": ("ids_trakt", ["images_poster", "images_clearart", "images_thumb"]),
+        # dailyRollUp's range always overlaps the last day or two already
+        # stored (see GoogleHealthPipeline.WATERMARK_OVERLAP_DAYS), since a
+        # day's totals can keep changing as a device finishes syncing —
+        # upserting on the generated `date` column keeps those rows current
+        # instead of freezing them at whatever partial value was first seen.
+        "steps": ("date", ["steps_countSum"]),
+        "distance": ("date", ["distance_metersSum"]),
+        "total_calories": ("date", ["totalCalories_kcalSum"]),
+        "active_minutes": ("date", ["activeMinutes_activeMinutesRollupByActivityLevel"]),
     }
 
     def __init__(self, registry, api_id=None):

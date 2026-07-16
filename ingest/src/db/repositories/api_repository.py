@@ -352,8 +352,13 @@ class ApiRepository:
             if record is None:
                 continue
             row = self._build_row(record, valid_cols, id_remap)
-            if conflict_column not in row:
+            if not row:
                 continue
+            # conflict_column is deliberately not required to be in row: it
+            # can be a GENERATED column (e.g. health.steps.date, derived from
+            # civilStartTime_year/month/day) which _column_info excludes from
+            # valid_cols and _build_row therefore never populates directly —
+            # Postgres computes it before the ON CONFLICT check regardless.
 
             col_list = ", ".join(f'"{c}"' for c in row)
             param_list = ", ".join(f":{c}" for c in row)
