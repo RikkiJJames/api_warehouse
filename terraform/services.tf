@@ -27,8 +27,8 @@ resource "google_service_account" "astro_frontend" {
 # does for run_jobs in iam.tf.
 resource "google_service_account_iam_member" "cloudbuild_act_as_backend_services" {
   service_account_id = google_service_account.backend_services.name
-  role                = "roles/iam.serviceAccountUser"
-  member              = local.cloudbuild_sa
+  role               = "roles/iam.serviceAccountUser"
+  member             = local.cloudbuild_sa
 }
 
 resource "google_cloudbuildv2_repository" "services" {
@@ -89,10 +89,26 @@ resource "google_cloud_run_v2_service" "services" {
   depends_on = [time_sleep.wait_for_apis]
 }
 
-# No allow_unauthenticated binding — private by default. Only the Astro
-# frontend's identity can invoke.
+# Private by default — only the Astro frontend's identity can invoke —
+# unless a service opts into `public = true` (allUsers instead, no
+# astro_frontend grant; see the `services` variable for why).
+locals {
+  public_services  = { for k, v in var.services : k => v if v.public }
+  private_services = { for k, v in var.services : k => v if !v.public }
+}
+
+resource "google_cloud_run_v2_service_iam_member" "services_public" {
+  for_each = local.public_services
+
+  project  = local.project
+  location = var.region
+  name     = google_cloud_run_v2_service.services[each.key].name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
 resource "google_cloud_run_v2_service_iam_member" "astro_can_invoke" {
-  for_each = var.services
+  for_each = local.private_services
 
   project  = local.project
   location = var.region

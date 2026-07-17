@@ -23,8 +23,8 @@ resource "google_project_iam_member" "workflow_run_developer" {
 # triggers .run() on them must be allowed to act as that SA.
 resource "google_service_account_iam_member" "workflow_act_as_run_jobs" {
   service_account_id = google_service_account.run_jobs.name
-  role                = "roles/iam.serviceAccountUser"
-  member              = "serviceAccount:${google_service_account.ingest_dbt_workflow.email}"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.ingest_dbt_workflow.email}"
 }
 
 resource "google_workflows_workflow" "ingest_then_dbt" {

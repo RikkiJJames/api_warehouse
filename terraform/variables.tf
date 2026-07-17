@@ -120,9 +120,11 @@ variable "services" {
     Backend Cloud Run services, one per GitHub repo under github_owner, built
     and deployed via their own push-triggered Cloud Build. Private by default
     (no allow_unauthenticated binding) — only the Astro frontend's service
-    account (astro_frontend below) can invoke them. Each repo must have its
-    own `cloudbuild.yaml` at its root; see services.tf for the substitutions
-    it can use (_REGION, _REPOSITORY, _SERVICE_NAME).
+    account (astro_frontend below) can invoke them — unless `public = true`,
+    which grants allUsers invoker instead (and skips the astro_frontend
+    grant entirely). Each repo must have its own `cloudbuild.yaml` at its
+    root; see services.tf for the substitutions it can use (_REGION,
+    _REPOSITORY, _SERVICE_NAME).
   EOT
   type = map(object({
     github_repo = string
@@ -130,10 +132,15 @@ variable "services" {
     cpu         = optional(string, "2")
     memory      = optional(string, "1Gb")
     env         = optional(map(string), {})
+    public      = optional(bool, false)
   }))
   default = {
     pokemon-dash = {
       github_repo = "Pokemon-Dash"
+      # Read-only 3D visualization dashboard, no write/side-effecting
+      # endpoints — embedded directly in an iframe on the portfolio site,
+      # which needs a plain public URL rather than an authenticated call.
+      public = true
     }
   }
 }
