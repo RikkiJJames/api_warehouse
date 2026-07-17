@@ -119,6 +119,14 @@ models:
           - relationships:
               to: ref('dim_tracks')
               field: spotify_track_id
+              config:
+                # Spotify's /tracks endpoint returns null (not an error) for
+                # ids that have since been delisted from the catalog, so
+                # these are silently skipped rather than stored — see
+                # save_records in ingest/src/db/repositories/api_repository.py.
+                # Historical play history can legitimately reference such
+                # ids forever; that's expected, not a data-quality bug.
+                severity: warn
       - name: track_duration_ms
         description: Duration of this play in milliseconds
 
@@ -133,6 +141,9 @@ models:
           - relationships:
               to: ref('dim_tracks')
               field: spotify_track_id
+              config:
+                # See the matching note on fct_play_history above.
+                severity: warn
       - name: times_played
         description: Total play count
         data_tests:
