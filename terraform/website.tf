@@ -93,7 +93,7 @@ resource "google_cloudbuild_trigger" "website" {
     }
   }
 
-  filename        = "cloudbuild.yaml"
+  filename        = "terraform/cloudbuild.yaml"
   service_account = local.cloudbuild_sa_resource_name
 
   substitutions = {
