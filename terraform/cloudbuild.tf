@@ -1,23 +1,17 @@
-# --- GitHub connection -------------------------------------------------------
-# Created out-of-band (one-time, interactive — gcloud drives the GitHub App
-# install + OAuth via Google's own OAuth client, no PAT needed):
-#   gcloud builds connections create github ${var.github_connection_name} \
-#     --region=${var.region} --project=${var.project_id}
-# The google provider has no data source for this resource type, so we build
-# its resource path directly instead of referencing/managing it in Terraform.
-# Still used by services.tf; the api_warehouse triggers below moved to 1st-gen.
-locals {
-  github_connection_path = "projects/${local.project}/locations/${var.region}/connections/${var.github_connection_name}"
-}
-
-# The api_warehouse triggers use 1st-gen `github {}` triggers rather than the
-# 2nd-gen connection above: manually running 2nd-gen repository triggers
-# (RunBuildTrigger) is pre-GA and was failing with an opaque
-# PERMISSION_DENIED despite correct IAM, while 1st-gen manual runs are GA.
-# 1st-gen needs the repo connected once via the legacy Cloud Build GitHub App
-# (Console → Cloud Build → Triggers → Connect repository → GitHub (Cloud
-# Build GitHub App)) before these triggers can be created. 1st-gen GitHub
-# triggers live in the global location, so `location` is omitted.
+# All triggers in this config (dbt/ingest/analysis here, plus website.tf and
+# services.tf) are 1st-gen `github {}` triggers: manually running a 2nd-gen
+# repository_event_config trigger (RunBuildTrigger) is pre-GA and fails with
+# an opaque PERMISSION_DENIED despite correct IAM, while 1st-gen manual runs
+# are GA. Each repo needs a one-time connection via the legacy Cloud Build
+# GitHub App (Console → Cloud Build → Triggers → Connect repository → GitHub
+# (Cloud Build GitHub App)) before its trigger can be created. 1st-gen GitHub
+# triggers live in the global location, so `location` is omitted throughout.
+#
+# The separate 2nd-gen `gcloud builds connections create github ...`
+# connection (see bootstrap.sh and var.github_connection_name) predates this
+# and is no longer read by any resource here — nothing currently needs it,
+# but it's harmless to leave in place if you want 2nd-gen repository
+# resources again later.
 
 resource "google_cloudbuild_trigger" "dbt" {
   project = local.project

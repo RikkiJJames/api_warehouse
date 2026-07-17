@@ -31,18 +31,6 @@ resource "google_service_account_iam_member" "cloudbuild_act_as_backend_services
   member             = local.cloudbuild_sa
 }
 
-resource "google_cloudbuildv2_repository" "services" {
-  for_each = var.services
-
-  project           = local.project
-  location          = var.region
-  name              = each.value.github_repo
-  parent_connection = local.github_connection_path
-  remote_uri        = "https://github.com/${var.github_owner}/${each.value.github_repo}.git"
-
-  depends_on = [time_sleep.wait_for_apis]
-}
-
 resource "google_cloud_run_v2_service" "services" {
   for_each = var.services
 
@@ -117,15 +105,20 @@ resource "google_cloud_run_v2_service_iam_member" "astro_can_invoke" {
   member   = "serviceAccount:${google_service_account.astro_frontend.email}"
 }
 
+# 1st-gen (github {}), not 2nd-gen repository_event_config — see the matching
+# comment on google_cloudbuild_trigger.website in website.tf for why. Each
+# repo in var.services needs the same one-time legacy GitHub App connection
+# (Console → Cloud Build → Triggers → Connect repository) before its trigger
+# can be created.
 resource "google_cloudbuild_trigger" "services" {
   for_each = var.services
 
-  project  = local.project
-  location = var.region
-  name     = "${each.key}-deploy"
+  project = local.project
+  name    = "${each.key}-deploy"
 
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.services[each.key].id
+  github {
+    owner = var.github_owner
+    name  = each.value.github_repo
     push {
       branch = var.branch_pattern
     }

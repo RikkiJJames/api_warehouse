@@ -36,16 +36,6 @@ resource "google_service_account_iam_member" "cloudbuild_act_as_website" {
   member             = local.cloudbuild_sa
 }
 
-resource "google_cloudbuildv2_repository" "website" {
-  project           = local.project
-  location          = var.region
-  name              = "home-app"
-  parent_connection = local.github_connection_path
-  remote_uri        = "https://github.com/${var.github_owner}/home-app.git"
-
-  depends_on = [time_sleep.wait_for_apis]
-}
-
 resource "google_cloud_run_v2_service" "website" {
   project  = local.project
   name     = "home-app"
@@ -91,13 +81,24 @@ resource "google_cloud_run_v2_service_iam_member" "website_public" {
   member   = "allUsers"
 }
 
+# 1st-gen (github {}), not a 2nd-gen repository_event_config trigger like this
+# used to be: manually running a 2nd-gen trigger (RunBuildTrigger) is pre-GA
+# and fails with an opaque PERMISSION_DENIED despite correct IAM — see the
+# matching comment in cloudbuild.tf, which hit the same issue for
+# dbt/ingest/analysis and moved those to 1st-gen for the same reason.
+# 1st-gen needs the home-app repo connected once via the legacy Cloud Build
+# GitHub App (Console → Cloud Build → Triggers → Connect repository →
+# GitHub (Cloud Build GitHub App)) before this trigger can be created — a
+# separate one-time step from the 2nd-gen `github-connection` used elsewhere,
+# since home-app is a different repo. 1st-gen triggers live in the global
+# location, so `location` is omitted.
 resource "google_cloudbuild_trigger" "website" {
-  project  = local.project
-  location = var.region
-  name     = "home-app-deploy"
+  project = local.project
+  name    = "home-app-deploy"
 
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.website.id
+  github {
+    owner = var.github_owner
+    name  = "home-app"
     push {
       branch = var.branch_pattern
     }
