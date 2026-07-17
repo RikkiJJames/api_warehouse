@@ -12,6 +12,16 @@ locals {
   website_region = "europe-west1"
 }
 
+resource "google_artifact_registry_repository" "website_images" {
+  project       = local.project
+  location      = local.website_region
+  repository_id = "home-app"
+  format        = "DOCKER"
+  description   = "Container images for the home-app Astro portfolio site"
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
 resource "google_service_account" "website" {
   project      = local.project
   account_id   = "astro-website"
@@ -98,7 +108,7 @@ resource "google_cloudbuild_trigger" "website" {
 
   substitutions = {
     _REGION       = local.website_region
-    _REPOSITORY   = google_artifact_registry_repository.images.repository_id
+    _REPOSITORY   = google_artifact_registry_repository.website_images.repository_id
     _SERVICE_NAME = google_cloud_run_v2_service.website.name
   }
 }
