@@ -1,3 +1,10 @@
+-- Overrides the intermediate layer's default view materialization — this
+-- aggregates over recently_played (hundreds of thousands of rows post-seed),
+-- so recomputing it live on every ad-hoc read (Cloud SQL Studio, the overview
+-- notebook) is what was making queries slow on the db-f1-micro instance.
+-- Built once per dbt run instead.
+{{ config(materialized='table') }}
+
 with tracks as (
     select * from {{ ref('track') }}
 ),
