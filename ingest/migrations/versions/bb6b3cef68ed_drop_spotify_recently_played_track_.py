@@ -20,6 +20,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # staging.recently_played and intermediate.int_track_enriched are dbt
+    # `select *` views baked to the current column list — they'll be
+    # recreated correctly by the next `dbt run`, so it's safe to let the
+    # column drops cascade to them here.
+    op.execute("DROP VIEW IF EXISTS intermediate.int_track_enriched CASCADE")
+    op.execute("DROP VIEW IF EXISTS staging.recently_played CASCADE")
     op.drop_column('recently_played', 'track_name', schema='spotify')
     op.drop_column('recently_played', 'track_duration_ms', schema='spotify')
     op.drop_column('recently_played', 'track_explicit', schema='spotify')
