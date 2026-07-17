@@ -1,1 +1,1 @@
-SELECT * FROM staging.recently_played;
+SELECT * FROM marts.fct_play_history;

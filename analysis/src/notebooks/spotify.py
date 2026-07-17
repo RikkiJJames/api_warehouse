@@ -117,7 +117,7 @@ def _(db, pd):
 
 @app.cell
 def _(db, pd):
-    track_df = pd.DataFrame(db.execute_query("SELECT * FROM staging.recently_played;"))
+    track_df = pd.DataFrame(db.execute_query("SELECT * FROM marts.fct_play_history;"))
     return (track_df,)
 
 
