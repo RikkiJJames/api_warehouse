@@ -36,7 +36,7 @@ class StorageAdapter:
         # upserting on the generated `date` column keeps those rows current
         # instead of freezing them at whatever partial value was first seen.
         "steps": ("date", ["steps_countSum"]),
-        "distance": ("date", ["distance_metersSum"]),
+        "distance": ("date", ["distance_millimetersSum"]),
         "total_calories": ("date", ["totalCalories_kcalSum"]),
         "active_minutes": ("date", ["activeMinutes_activeMinutesRollupByActivityLevel"]),
     }

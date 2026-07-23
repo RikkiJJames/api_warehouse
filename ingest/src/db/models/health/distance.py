@@ -7,6 +7,13 @@ from src.db.core.db import Base
 
 class Distance(Base):
     # See health.steps for the civil_start_time -> date derivation pattern.
+    #
+    # DistanceRollupValue's only field is millimetersSum (confirmed against
+    # https://developers.google.com/health/reference/rest/v4/DistanceRollupValue),
+    # not metersSum — flatten_record produces "distance_millimetersSum", so a
+    # metersSum-named column here would silently stay NULL forever (no error,
+    # since _build_row just drops any flattened key it doesn't recognize).
+    # stg_distance.sql converts to meters for the mart layer.
     __tablename__ = "distance"
     __table_args__ = (
         UniqueConstraint("date", name="uq_health_distance_date"),
@@ -28,4 +35,4 @@ class Distance(Base):
         ),
         nullable=True,
     )
-    distance_metersSum: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    distance_millimetersSum: Mapped[int | None] = mapped_column(Integer, nullable=True)

@@ -4,6 +4,6 @@ with source as (
 
 select
     date,
-    "distance_metersSum" as distance_meters
+    round("distance_millimetersSum" / 1000.0, 1) as distance_meters
 from source
 where date is not null
