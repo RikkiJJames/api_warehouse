@@ -45,7 +45,7 @@ order by watched_at desc
 
 ## Top Movies
 
-Every movie you've watched, sortable by watch count, total runtime, or your rating.
+Every movie I've watched, sortable by watch count, total runtime, or rating.
 
 <Dropdown name=movie_sort title="Sort by" defaultValue="watch_count">
     <DropdownOption value="watch_count" valueLabel="Watch Count"/>
@@ -67,7 +67,7 @@ limit ${inputs.movie_top_n.value}
 
 ## Rating Distribution
 
-How the community rating is spread out across movies you've watched.
+How the community rating is spread out across movies I've watched.
 
 ```sql movie_ratings
 select m.rating
@@ -128,7 +128,7 @@ select * from warehouse.fct_watchlist order by rank
 
 ## Genre Breakdown
 
-Which genres dominate your watch history, split by movies vs. shows.
+Which genres dominate my watch history, split by movies vs. shows.
 
 ```sql genre_stats
 select * from warehouse.fct_genre_stats order by title_count desc limit 15

@@ -9,7 +9,7 @@ title: Hardcover
 
 ## Top Books
 
-Every finished book, sortable by when you finished it, your rating, or page count.
+Every finished book, sortable by when I finished it, my rating, or page count.
 
 <Dropdown name=book_sort title="Sort by" defaultValue="read_finished_at">
     <DropdownOption value="read_finished_at" valueLabel="Finished Date"/>
@@ -30,7 +30,7 @@ limit ${inputs.book_top_n.value}
 
 ## Rating Distribution
 
-How your personal book ratings are spread out.
+How my personal book ratings are spread out.
 
 ```sql book_ratings
 select my_rating from warehouse.fct_reading_history where my_rating is not null

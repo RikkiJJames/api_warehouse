@@ -76,7 +76,7 @@ order by date
 
 ## Average Steps by Day of Week
 
-Which days you tend to move the most, averaged across all history.
+Which days I tend to move the most, averaged across all history.
 
 ```sql steps_by_weekday
 select

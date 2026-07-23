@@ -120,7 +120,7 @@ limit 5
 ## Daily Activity Across Sources
 
 Every logged Spotify play, Trakt watch, and finished Hardcover book, plotted
-by day so you can spot binges, dry spells, and how the three habits overlap
+by day so I can spot binges, dry spells, and how the three habits overlap
 over time.
 
 ```sql combined_daily_activity

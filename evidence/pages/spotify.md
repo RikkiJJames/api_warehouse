@@ -14,7 +14,7 @@ from warehouse.fct_play_history
 
 ## Top Tracks
 
-Rank every track you've played, ranked by whichever window matters to you right now.
+Rank every track I've played, ranked by whichever window matters to me right now.
 
 <Dropdown name=metric title="Ranking metric" defaultValue="weekly_plays">
     <DropdownOption value="weekly_plays" valueLabel="Weekly Plays"/>
@@ -34,10 +34,10 @@ limit ${inputs.top_n.value}
 
 <DataTable data={top_tracks} rows={inputs.top_n.value}/>
 
-## Your Listening, by Mainstream-ness
+## My Listening, by Mainstream-ness
 
-How your total plays break down across Spotify's popularity scale — every
-track here has at least 1 play by definition, so this shows whether your
+How my total plays break down across Spotify's popularity scale — every
+track here has at least 1 play by definition, so this shows whether my
 listening skews toward deep cuts or mainstream hits, rather than plays vs.
 popularity directly.
 
@@ -58,11 +58,11 @@ group by 1
 order by bucket_order
 ```
 
-<BarChart data={popularity_buckets} x=popularity_bucket y=total_plays title="Your Listening, by Mainstream-ness"/>
+<BarChart data={popularity_buckets} x=popularity_bucket y=total_plays title="My Listening, by Mainstream-ness"/>
 
 ## Plays by Track Duration
 
-Total plays bucketed by track length, so you can see whether you gravitate
+Total plays bucketed by track length, so I can see whether I gravitate
 towards short, medium, or long cuts.
 
 ```sql duration_buckets
@@ -84,7 +84,7 @@ order by bucket_order
 
 ## Tracks by Decade
 
-Filter your library down to one or more release decades and see which
+Filter my library down to one or more release decades and see which
 tracks from those eras get the most plays.
 
 ```sql track_decades
@@ -131,7 +131,7 @@ from warehouse.fct_play_history
 
 ## Top Artists
 
-Every artist you've listened to, ranked by total plays, with unique track
+Every artist I've listened to, ranked by total plays, with unique track
 count and average popularity.
 
 ```sql top_artists
@@ -150,7 +150,7 @@ limit 20
 
 ## Artist Deep Dive
 
-Pick an artist below to see every track of theirs you've played and your
+Pick an artist below to see every track of theirs I've played and my
 total listening time with them.
 
 ```sql artist_options
@@ -184,7 +184,7 @@ order by times_played desc
 ## Album Leaderboard
 
 Albums ranked by total plays across their tracks, alongside how much of each
-album you've actually explored.
+album I've actually explored.
 
 ```sql top_albums
 select
@@ -203,7 +203,7 @@ limit 30
 
 ## Explicit vs Clean
 
-Share of your total plays that come from explicit vs. clean tracks.
+Share of my total plays that come from explicit vs. clean tracks.
 
 ```sql explicit_split
 select
