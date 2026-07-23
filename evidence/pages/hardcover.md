@@ -21,7 +21,7 @@ Every finished book, sortable by when you finished it, your rating, or page coun
 
 ```sql top_books
 select title, pages, my_rating, read_started_at, read_finished_at
-from marts.fct_reading_history
+from warehouse.fct_reading_history
 order by ${inputs.book_sort.value} desc nulls last
 limit ${inputs.book_top_n.value}
 ```
@@ -33,7 +33,7 @@ limit ${inputs.book_top_n.value}
 How your personal book ratings are spread out.
 
 ```sql book_ratings
-select my_rating from marts.fct_reading_history where my_rating is not null
+select my_rating from warehouse.fct_reading_history where my_rating is not null
 ```
 
 <Histogram data={book_ratings} x=my_rating title="Personal Rating Distribution"/>
@@ -46,14 +46,14 @@ select my_rating from marts.fct_reading_history where my_rating is not null
 Everything on deck — filter by status to see what's in progress vs. still on the list.
 
 ```sql reading_list_statuses
-select distinct status from marts.fct_reading_list
+select distinct status from warehouse.fct_reading_list
 ```
 
 <Dropdown data={reading_list_statuses} name=reading_status value=status multiple=true defaultValue={reading_list_statuses.map(d => d.status)}/>
 
 ```sql filtered_reading_list
 select status, status_at, title, pages, release_date
-from marts.fct_reading_list
+from warehouse.fct_reading_list
 where status in ${inputs.reading_status.value}
 order by status_at desc
 ```
@@ -68,7 +68,7 @@ order by status_at desc
 Books finished per calendar year, alongside pages and average rating.
 
 ```sql reading_stats
-select * from marts.fct_reading_stats order by year desc
+select * from warehouse.fct_reading_stats order by year desc
 ```
 
 <BarChart data={reading_stats} x=year y=books_read title="Books Read per Year"/>

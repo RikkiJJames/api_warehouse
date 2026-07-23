@@ -19,7 +19,7 @@ npm run dev             # http://localhost:3000
 
 The DB connection is configured in `sources/warehouse/connection.yaml` (host/port/database
 come from `.env`, not committed — see `.env.example`). For local dev, point
-`EVIDENCE_SOURCE__WAREHOUSE__HOST`/`PORT` at a
+`EVIDENCE_SOURCE__WAREHOUSE__host`/`port` (must be lowercase — see `.env.example`) at a
 [Cloud SQL Auth Proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy)
 tunnel rather than the instance directly, same as the `cloudsql-proxy`
 sidecar the `ingest`/`dbt` Cloud Run jobs use (see `ingest/src/db/core/db.py`).

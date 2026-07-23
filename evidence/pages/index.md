@@ -26,23 +26,23 @@ captured so far and how far back it goes.
 
 ```sql spotify_stats
 select count(*) as plays, min(played_at) as since
-from marts.fct_play_history
+from warehouse.fct_play_history
 ```
 
 ```sql trakt_stats
 select count(*) as items, min(watched_at) as since
-from marts.fct_watch_history
+from warehouse.fct_watch_history
 ```
 
 ```sql hardcover_stats
 select count(*) as books, min(read_finished_at) as since
-from marts.fct_reading_history
+from warehouse.fct_reading_history
 where read_finished_at is not null
 ```
 
 ```sql fitness_overview_stats
 select round(avg(steps)) as avg_steps, min(date) as since
-from marts.fct_daily_activity
+from warehouse.fct_daily_activity
 ```
 
 <Grid cols=4>
@@ -69,7 +69,7 @@ select
     sum(monthly_plays) as monthly_plays,
     count(distinct case when monthly_plays > 0 then track_name end) as tracks_this_month,
     max(artist_image_url) as artist_image_url
-from intermediate.int_track_enriched
+from warehouse.int_track_enriched
 group by artist_name
 having sum(monthly_plays) > 0
 order by monthly_plays desc
@@ -87,7 +87,7 @@ limit 5
 
 ```sql recent_movies
 select title, year, watched_at, poster_url
-from marts.fct_watch_history
+from warehouse.fct_watch_history
 where media_type = 'movie' and watched_at is not null
 order by watched_at desc
 limit 5
@@ -104,7 +104,7 @@ limit 5
 
 ```sql recent_books
 select title, read_finished_at, cover_image_url, my_rating
-from marts.fct_reading_history
+from warehouse.fct_reading_history
 where read_finished_at is not null
 order by read_finished_at desc
 limit 5
@@ -125,20 +125,20 @@ over time.
 
 ```sql combined_daily_activity
 select date_trunc('day', played_at)::date as date, count(*) as count, 'Spotify' as source
-from marts.fct_play_history
+from warehouse.fct_play_history
 group by 1
 
 union all
 
 select watched_at::date as date, count(*) as count, 'Trakt' as source
-from marts.fct_watch_history
+from warehouse.fct_watch_history
 where watched_at is not null
 group by 1
 
 union all
 
 select read_finished_at::date as date, count(*) as count, 'Hardcover' as source
-from marts.fct_reading_history
+from warehouse.fct_reading_history
 where read_finished_at is not null
 group by 1
 

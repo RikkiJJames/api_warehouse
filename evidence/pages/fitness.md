@@ -11,7 +11,7 @@ Google Health daily activity — steps, distance, calories and active minutes.
 
 ```sql fitness_summary
 with s as (
-    select date, steps, active_minutes from marts.fct_daily_activity
+    select date, steps, active_minutes from warehouse.fct_daily_activity
 )
 select
     max(steps) as max_steps,
@@ -24,7 +24,7 @@ from s
 ```
 
 ```sql fitness_yoy
-with s as (select date, steps from marts.fct_daily_activity),
+with s as (select date, steps from warehouse.fct_daily_activity),
 this_ytd as (
     select avg(steps) as avg_steps from s where date >= date_trunc('year', now())
 ),
@@ -58,7 +58,7 @@ from this_ytd, last_ytd
 
 ```sql fitness_daily
 select date, steps, round(distance_meters / 1000, 2) as distance_km, total_calories, active_minutes
-from marts.fct_daily_activity
+from warehouse.fct_daily_activity
 order by date
 ```
 
@@ -80,10 +80,10 @@ Which days you tend to move the most, averaged across all history.
 
 ```sql steps_by_weekday
 select
-    trim(to_char(date, 'Day')) as weekday,
+    strftime(date, '%A') as weekday,
     (extract(dow from date)::int + 6) % 7 as weekday_order,
     round(avg(steps)) as avg_steps
-from marts.fct_daily_activity
+from warehouse.fct_daily_activity
 where steps is not null
 group by 1, 2
 order by weekday_order
@@ -95,7 +95,7 @@ order by weekday_order
 
 ```sql steps_by_month
 select date_trunc('month', date)::date as month, sum(steps) as total_steps
-from marts.fct_daily_activity
+from warehouse.fct_daily_activity
 where steps is not null
 group by 1
 order by 1
@@ -110,7 +110,7 @@ order by 1
 
 ```sql fitness_recent
 select date, steps, distance_meters, total_calories, active_minutes
-from marts.fct_daily_activity
+from warehouse.fct_daily_activity
 order by date desc
 limit 30
 ```

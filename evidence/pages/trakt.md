@@ -13,7 +13,7 @@ Number of movies and episodes watched per day — a quick way to spot binge sess
 
 ```sql watch_daily
 select watched_at::date as date, count(*) as count
-from marts.fct_watch_history
+from warehouse.fct_watch_history
 where watched_at is not null
 group by 1
 order by 1
@@ -26,14 +26,14 @@ order by 1
 The full watch log, filterable by media type, most recent first.
 
 ```sql media_types
-select distinct media_type from marts.fct_watch_history
+select distinct media_type from warehouse.fct_watch_history
 ```
 
 <Dropdown data={media_types} name=media_type_filter value=media_type multiple=true defaultValue={media_types.map(d => d.media_type)}/>
 
 ```sql watch_timeline
 select watched_at, media_type, title, show_title, season, episode_number, runtime_mins
-from marts.fct_watch_history
+from warehouse.fct_watch_history
 where media_type in ${inputs.media_type_filter.value}
 order by watched_at desc
 ```
@@ -57,8 +57,8 @@ Every movie you've watched, sortable by watch count, total runtime, or your rati
 
 ```sql top_movies
 select m.title, m.year, m.rating, m.runtime_mins, s.watch_count, s.total_runtime_hours, s.last_watched_at
-from marts.dim_movies m
-left join marts.fct_movie_stats s on m.trakt_movie_id = s.trakt_movie_id
+from warehouse.dim_movies m
+left join warehouse.fct_movie_stats s on m.trakt_movie_id = s.trakt_movie_id
 order by ${inputs.movie_sort.value} desc nulls last
 limit ${inputs.movie_top_n.value}
 ```
@@ -71,7 +71,7 @@ How the community rating is spread out across movies you've watched.
 
 ```sql movie_ratings
 select m.rating
-from marts.dim_movies m
+from warehouse.dim_movies m
 where m.rating is not null
 ```
 
@@ -95,8 +95,8 @@ Shows ranked by episodes watched, completion percentage, or rating.
 ```sql top_shows
 select sh.show_title, sh.show_year, sh.network, sh.content_type, sh.show_rating,
     st.episodes_watched, st.seasons_watched, st.completion_pct, st.total_runtime_hours
-from marts.dim_shows sh
-left join marts.fct_show_stats st on sh.trakt_show_id = st.trakt_show_id
+from warehouse.dim_shows sh
+left join warehouse.fct_show_stats st on sh.trakt_show_id = st.trakt_show_id
 order by ${inputs.show_sort.value} desc nulls last
 limit ${inputs.show_top_n.value}
 ```
@@ -111,7 +111,7 @@ limit ${inputs.show_top_n.value}
 Movies and shows queued up but not yet watched.
 
 ```sql watchlist
-select * from marts.fct_watchlist order by rank
+select * from warehouse.fct_watchlist order by rank
 ```
 
 <DataTable data={watchlist}>
@@ -131,7 +131,7 @@ select * from marts.fct_watchlist order by rank
 Which genres dominate your watch history, split by movies vs. shows.
 
 ```sql genre_stats
-select * from marts.fct_genre_stats order by title_count desc limit 15
+select * from warehouse.fct_genre_stats order by title_count desc limit 15
 ```
 
 <BarChart
