@@ -68,7 +68,7 @@ order by status_at desc
 Books finished per calendar year, alongside pages and average rating.
 
 ```sql reading_stats
-select * from warehouse.fct_reading_stats order by year desc
+select * from warehouse.fct_reading_stats where year is not null order by year desc
 ```
 
 <BarChart data={reading_stats} x=year y=books_read title="Books Read per Year"/>
