@@ -18,7 +18,8 @@ async def main() -> dict[str, object]:
     logger.info("Starting ingest job")
     results: dict[str, object] = {}
 
-    for Pipeline in [SpotifyPipeline, TraktPipeline, HardcoverPipeline, GoogleHealthPipeline]:
+    for Pipeline in [SpotifyPipeline, HardcoverPipeline, GoogleHealthPipeline]:
+    # for Pipeline in [TraktPipeline]:
         pipeline_name = Pipeline.__name__
         logger.info("Running pipeline: %s", pipeline_name)
         result = await Pipeline().run()
