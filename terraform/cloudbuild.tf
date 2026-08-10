@@ -82,7 +82,10 @@ resource "google_cloudbuild_trigger" "analysis" {
     _SERVICE_NAME = google_cloud_run_v2_service.analysis.name
   }
 
-  # analysis/ imports ingest/src/db directly, so a change to either subfolder
-  # (or the shared root pyproject.toml/uv.lock) needs to rebuild this image.
-  included_files = ["analysis/**", "ingest/**", "terraform/cloudbuild-analysis.yaml", "pyproject.toml", "uv.lock"]
+  # analysis/ only imports ingest/src/db (see analysis/src/loader/data_loader.py),
+  # not the rest of ingest/ (pipelines, api client, rest_api, etc.), so only
+  # that subfolder (or the shared root pyproject.toml/uv.lock) needs to
+  # rebuild this image — scoping to ingest/** would rebuild on every
+  # pipeline/connector change too, which is most ingest commits.
+  included_files = ["analysis/**", "ingest/src/db/**", "terraform/cloudbuild-analysis.yaml", "pyproject.toml", "uv.lock"]
 }
