@@ -1,10 +1,13 @@
 import http.server
+import logging
 import threading
 import urllib.parse
 import webbrowser
 from urllib.parse import urlencode
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class TraktAuthFlow:
@@ -71,6 +74,7 @@ class TraktAuthFlow:
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
 
+        logger.info(f"Open this URL to authorize Trakt: {auth_url}")
         webbrowser.open(auth_url)
 
         self._done.wait()
