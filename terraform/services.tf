@@ -110,8 +110,12 @@ resource "google_cloud_run_v2_service_iam_member" "astro_can_invoke" {
 # repo in var.services needs the same one-time legacy GitHub App connection
 # (Console → Cloud Build → Triggers → Connect repository) before its trigger
 # can be created.
+#
+# data-dashboards is excluded here and built via a dedicated inline-build
+# trigger below instead of its own checked-in cloudbuild.yaml — see the
+# comment on google_cloudbuild_trigger.data_dashboards for why.
 resource "google_cloudbuild_trigger" "services" {
-  for_each = var.services
+  for_each = { for k, v in var.services : k => v if k != "data-dashboards" }
 
   project = local.project
   name    = "${each.key}-deploy"
@@ -132,4 +136,67 @@ resource "google_cloudbuild_trigger" "services" {
     _REPOSITORY   = google_artifact_registry_repository.images.repository_id
     _SERVICE_NAME = google_cloud_run_v2_service.services[each.key].name
   }
+}
+
+# data-dashboards is a personal training repo, not (yet) worth checking a
+# cloudbuild.yaml into — this inline build is a stand-in for that file until
+# the service moves to the home-app project, at which point it should become
+# a normal file-based trigger like the one above (or website.tf's).
+resource "google_cloudbuild_trigger" "data_dashboards" {
+  project = local.project
+  name    = "data-dashboards-deploy"
+
+  github {
+    owner = var.github_owner
+    name  = var.services["data-dashboards"].github_repo
+    push {
+      branch = var.branch_pattern
+    }
+  }
+
+  service_account = local.cloudbuild_sa_resource_name
+
+  build {
+    step {
+      name = "gcr.io/cloud-builders/docker"
+      args = [
+        "build",
+        "-t",
+        local.data_dashboards_image,
+        ".",
+      ]
+    }
+
+    # Push before deploying — the top-level `images` list only pushes after
+    # all steps finish, which is too late for the services-update step below.
+    step {
+      name = "gcr.io/cloud-builders/docker"
+      args = ["push", local.data_dashboards_image]
+    }
+
+    step {
+      name       = "gcr.io/google.com/cloudsdktool/cloud-sdk"
+      entrypoint = "gcloud"
+      args = [
+        "run", "services", "update",
+        google_cloud_run_v2_service.services["data-dashboards"].name,
+        "--region=${var.region}",
+        "--image=${local.data_dashboards_image}",
+      ]
+    }
+
+    images = [local.data_dashboards_image]
+
+    # Required when the trigger specifies a custom service_account (as this
+    # 1st-gen trigger does) — LEGACY logging is rejected in that case.
+    options {
+      logging = "CLOUD_LOGGING_ONLY"
+    }
+  }
+}
+
+locals {
+  # $PROJECT_ID/$COMMIT_SHA are Cloud Build's own built-in substitutions,
+  # resolved at build time — not Terraform interpolation.
+  data_dashboards_image = "${var.region}-docker.pkg.dev/$PROJECT_ID/${google_artifact_registry_repository.images.repository_id}/${google_cloud_run_v2_service.services["data-dashboards"].name}:$COMMIT_SHA"
 }
