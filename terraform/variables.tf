@@ -142,5 +142,15 @@ variable "services" {
       # which needs a plain public URL rather than an authenticated call.
       public = true
     }
+    data-dashboards = {
+      github_repo = "data-dashboard"
+      # marimo `run` mode is read-only (no notebook editing) and serves all
+      # four dashboards behind one gallery index page from a single
+      # container — see that repo's Dockerfile/cloudbuild.yaml. Public for
+      # the same reason as pokemon-dash: a portfolio dashboard, not an
+      # authenticated backend.
+      memory = "2Gi" # ecommerce.py loads ~1.6M rows across 9 CSVs into pandas at startup.
+      public = true
+    }
   }
 }
