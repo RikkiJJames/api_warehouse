@@ -6,7 +6,7 @@ dist/
 wheels/
 *.egg-info
 __marimo__
-
+seed/
 # Configs
 
 *.cfg
