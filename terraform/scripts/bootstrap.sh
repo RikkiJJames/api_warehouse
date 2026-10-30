@@ -13,7 +13,8 @@ set -euo pipefail
 # and before the final `terraform apply`.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TFVARS_FILE="$SCRIPT_DIR/terraform.tfvars"
+TERRAFORM_DIR="$(dirname "$SCRIPT_DIR")"
+TFVARS_FILE="$TERRAFORM_DIR/terraform.tfvars"
 
 # Pulls `key = "value"` out of terraform.tfvars so these don't have to be
 # duplicated here. Falls back to the given default if the file or key is
@@ -31,7 +32,7 @@ REGION="$(tfvars_value region "europe-west2")"
 CONNECTION_NAME="$(tfvars_value github_connection_name "github-connection")"
 GITHUB_OWNER="$(tfvars_value github_owner "")"
 GITHUB_REPO="$(tfvars_value github_repo "api_warehouse")"
-ENV_FILE="$SCRIPT_DIR/../.env"
+ENV_FILE="$TERRAFORM_DIR/../.env"
 
 usage() {
   echo "Usage: $0 [--project <id>] [--region <region>] [--connection-name <name>] \\"
@@ -79,7 +80,6 @@ SECRET_NAMES=(
   SPOTIFY_REDIRECT_URL
   HARDCOVER_API_TOKEN
   TRAKT_CLIENT_ID
-  TRAKT_CLIENT_SECRET
   TRAKT_REFRESH_TOKEN
   TRAKT_REDIRECT_URL
   GOOGLE_HEALTH_CLIENT_ID

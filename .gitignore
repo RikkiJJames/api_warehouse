@@ -32,5 +32,5 @@ terraform/terraform.tfvars
 terraform/*.auto.tfvars
 .terraform**
 
-# Downloaded by terraform/cloud-sql-proxy.sh
-terraform/.bin/
+# Downloaded by terraform/scripts/cloud-sql-proxy.sh
+terraform/scripts/.bin/

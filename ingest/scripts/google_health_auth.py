@@ -28,7 +28,7 @@ from src.pipelines.google_health.authorization_flow import GoogleHealthAuthFlow 
 
 
 def _tfvars_value(key: str) -> str | None:
-    """Same lookup terraform/bootstrap.sh does, for --push's --project default."""
+    """Same lookup terraform/scripts/bootstrap.sh does, for --push's --project default."""
     tfvars_file = ROOT_DIR / "terraform" / "terraform.tfvars"
     if not tfvars_file.exists():
         return None
@@ -95,7 +95,7 @@ def main() -> None:
         print("\nrefresh_token:", refresh_token)
         print(
             "\nAdd this as GOOGLE_HEALTH_REFRESH_TOKEN in .env and re-run "
-            "terraform/bootstrap.sh, or re-run this script with --push to send "
+            "terraform/scripts/bootstrap.sh, or re-run this script with --push to send "
             "it straight to Secret Manager."
         )
 

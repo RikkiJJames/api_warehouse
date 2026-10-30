@@ -9,14 +9,14 @@ Provisions a new GCP project with:
   once ingest actually completes, fired hourly by Cloud Scheduler
 - Secret Manager containers for DB creds (values generated and set by
   Terraform itself) and third-party API creds (values pushed out-of-band via
-  `bootstrap.sh`, since Terraform has no way to obtain them)
+  `scripts/bootstrap.sh`, since Terraform has no way to obtain them)
 
 ## Apply
 
 Some resources can't be created on the first pass — Cloud Run rejects a job
 whose secret refs have no version yet, and the repository link needs the
 GitHub connection to already exist — both of those are set up out-of-band via
-`bootstrap.sh`, not Terraform. In practice this is a 3-step loop, and it's
+`scripts/bootstrap.sh`, not Terraform. In practice this is a 3-step loop, and it's
 fine to just let step 1 partially fail:
 
 1. `gcloud auth application-default login` (Terraform runs as you). You need
@@ -39,11 +39,11 @@ fine to just let step 1 partially fail:
    drives the Cloud Build <-> GitHub connection setup (GitHub App install +
    OAuth via Google's own OAuth client, **no PAT needed**):
    ```
-   ./bootstrap.sh
+   ./scripts/bootstrap.sh
    ```
    It reads `project_id`/`region`/`github_owner`/`github_repo` straight out
    of `terraform.tfvars` — override any of them with flags if needed
-   (`./bootstrap.sh --project other-id`). If the connection prints
+   (`./scripts/bootstrap.sh --project other-id`). If the connection prints
    `PENDING_USER_OAUTH`, open the `actionUri` from its `describe` output in a
    browser once and confirm it before moving on.
 
@@ -74,12 +74,12 @@ gcloud run jobs execute api-warehouse-dbt --region=$(terraform output ... region
 
 `api-warehouse-db` has no `authorized_networks`, so its public IP is
 unreachable from anywhere — the only way in is the Cloud SQL Auth Proxy,
-authenticating via IAM instead. `./cloud-sql-proxy.sh` installs the proxy
-binary if it's not already on your `PATH` (into `terraform/.bin/`, gitignored)
+authenticating via IAM instead. `./scripts/cloud-sql-proxy.sh` installs the proxy
+binary if it's not already on your `PATH` (into `terraform/scripts/.bin/`, gitignored)
 and runs it in the foreground against `api-warehouse-db`:
 
 ```
-./cloud-sql-proxy.sh
+./scripts/cloud-sql-proxy.sh
 ```
 
 Leave that running, then in another shell point `DB_HOST=127.0.0.1` /

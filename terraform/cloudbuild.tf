@@ -8,7 +8,7 @@
 # triggers live in the global location, so `location` is omitted throughout.
 #
 # The separate 2nd-gen `gcloud builds connections create github ...`
-# connection (see bootstrap.sh and var.github_connection_name) predates this
+# connection (see scripts/bootstrap.sh and var.github_connection_name) predates this
 # and is no longer read by any resource here — nothing currently needs it,
 # but it's harmless to leave in place if you want 2nd-gen repository
 # resources again later.
