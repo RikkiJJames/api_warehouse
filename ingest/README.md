@@ -77,7 +77,6 @@ SPOTIFY_REDIRECT_URL=
 SPOTIFY_REFRESH_TOKEN=      # optional — omit to go through the browser auth flow on first run
 
 TRAKT_CLIENT_ID=
-TRAKT_CLIENT_SECRET=
 TRAKT_REDIRECT_URL=
 TRAKT_REFRESH_TOKEN=        # optional — same as above
 

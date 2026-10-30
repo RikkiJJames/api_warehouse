@@ -14,14 +14,12 @@ class TraktTokenManager:
     def __init__(
         self,
         client_id: str,
-        client_secret: str,
         refresh_token: str,
         redirect_url: str,
         timeout: int = 10,
         on_refresh: Callable[[str], None] | None = None,
     ):
         self.client_id = client_id
-        self.client_secret = client_secret
         self.refresh_token = refresh_token
         self.redirect_uri = redirect_url
         self.timeout = timeout
@@ -39,7 +37,6 @@ class TraktTokenManager:
             json={
                 "refresh_token": self.refresh_token,
                 "client_id": self.client_id,
-                "client_secret": self.client_secret,
                 "redirect_uri": self.redirect_uri,
                 "grant_type": "refresh_token",
             },

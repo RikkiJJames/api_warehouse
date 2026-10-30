@@ -5,8 +5,6 @@ base_url: https://api.trakt.tv
 api_config:
   - parameter_name: client_id
     parameter_value: !env_optional TRAKT_CLIENT_ID
-  - parameter_name: client_secret
-    parameter_value: !env_optional TRAKT_CLIENT_SECRET
   - parameter_name: refresh_token
     parameter_value: !env_optional TRAKT_REFRESH_TOKEN
   - parameter_name: redirect_url

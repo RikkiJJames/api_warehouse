@@ -1,5 +1,8 @@
+import base64
+import hashlib
 import http.server
 import logging
+import secrets
 import threading
 import urllib.parse
 import webbrowser
@@ -14,14 +17,23 @@ class TraktAuthFlow:
     AUTH_URL = "https://trakt.tv/oauth/authorize"
     TOKEN_URL = "https://api.trakt.tv/oauth/token"
 
-    def __init__(self, client_id: str, client_secret: str, redirect_url: str):
+    def __init__(self, client_id: str, redirect_url: str):
         self.client_id = client_id
-        self.client_secret = client_secret
         self.redirect_uri = redirect_url
         parsed_port = urllib.parse.urlparse(redirect_url).port
         if parsed_port is None:
             raise ValueError(f"No port found in redirect_url: {redirect_url}")
         self.port = parsed_port
+
+        # PKCE (RFC 7636): a per-run random verifier whose S256 hash goes in
+        # the authorize URL, then the verifier itself is sent on the code
+        # exchange in place of a client_secret.
+        self.code_verifier = secrets.token_urlsafe(64)
+        self.code_challenge = (
+            base64.urlsafe_b64encode(hashlib.sha256(self.code_verifier.encode()).digest())
+            .rstrip(b"=")
+            .decode()
+        )
 
         self._auth_code: str | None = None
         self._done = threading.Event()
@@ -50,7 +62,7 @@ class TraktAuthFlow:
             json={
                 "code": code,
                 "client_id": self.client_id,
-                "client_secret": self.client_secret,
+                "code_verifier": self.code_verifier,
                 "redirect_uri": self.redirect_uri,
                 "grant_type": "authorization_code",
             },
@@ -64,6 +76,8 @@ class TraktAuthFlow:
                 "response_type": "code",
                 "client_id": self.client_id,
                 "redirect_uri": self.redirect_uri,
+                "code_challenge": self.code_challenge,
+                "code_challenge_method": "S256",
             }
         )
 

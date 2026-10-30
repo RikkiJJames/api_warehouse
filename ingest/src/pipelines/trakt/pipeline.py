@@ -29,8 +29,7 @@ class TraktPipeline(ApiPipeline):
         if config.get("refresh_token"):
             self.token_manager = TraktTokenManager(
                 client_id=config["client_id"],
-                client_secret=config["client_secret"],
-                refresh_token=config["refresh_token"],
+                    refresh_token=config["refresh_token"],
                 redirect_url=config["redirect_url"],
                 on_refresh=self._persist_refresh_token,
             )
@@ -38,7 +37,6 @@ class TraktPipeline(ApiPipeline):
 
         flow = TraktAuthFlow(
             client_id=config["client_id"],
-            client_secret=config["client_secret"],
             redirect_url=config["redirect_url"],
         )
 
@@ -47,7 +45,6 @@ class TraktPipeline(ApiPipeline):
 
         self.token_manager = TraktTokenManager(
             client_id=config["client_id"],
-            client_secret=config["client_secret"],
             refresh_token=config["refresh_token"],
             redirect_url=config["redirect_url"],
             on_refresh=self._persist_refresh_token,
