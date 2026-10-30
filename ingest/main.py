@@ -20,7 +20,7 @@ async def main() -> tuple[dict[str, object], list[str]]:
     failed: list[str] = []
 
     for Pipeline in [SpotifyPipeline, HardcoverPipeline, GoogleHealthPipeline, TraktPipeline]:
-    # for Pipeline in [GoogleHealthPipeline]:
+    # for Pipeline in [TraktPipeline]:
         pipeline_name = Pipeline.__name__
         logger.info("Running pipeline: %s", pipeline_name)
         # One API's failure (expired token, outage, bad response) shouldn't
