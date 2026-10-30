@@ -50,7 +50,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['anime', 'animation', 'documentary', 'show']
+              arguments:
+                values: ['anime', 'animation', 'documentary', 'show']
 
   - name: int_movies
     description: Deduplicated movie catalogue derived from watch history, one row per movie

@@ -37,8 +37,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_books')
-              field: book_id
+              arguments:
+                to: ref('dim_books')
+                field: book_id
       - name: title
         description: Book title
       - name: pages
@@ -65,7 +66,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['currently_reading', 'want_to_read']
+              arguments:
+                values: ['currently_reading', 'want_to_read']
       - name: status_at
         description: Datetime the current read was started (currently_reading) or the book was added to the list (want_to_read)
       - name: book_id
@@ -73,8 +75,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_books')
-              field: book_id
+              arguments:
+                to: ref('dim_books')
+                field: book_id
       - name: title
         description: Book title
       - name: pages

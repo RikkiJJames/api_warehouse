@@ -103,7 +103,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['anime', 'animation', 'documentary', 'show']
+              arguments:
+                values: ['anime', 'animation', 'documentary', 'show']
 
   - name: dim_anime
     description: Anime shows — filtered view of dim_shows where content_type = 'anime'
@@ -161,8 +162,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('dim_movies')
-              field: trakt_movie_id
+              arguments:
+                to: ref('dim_movies')
+                field: trakt_movie_id
       - name: watch_count
         description: Number of times watched
         data_tests:
@@ -189,8 +191,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('dim_shows')
-              field: trakt_show_id
+              arguments:
+                to: ref('dim_shows')
+                field: trakt_show_id
       - name: episodes_watched
         description: Total episodes watched
         data_tests:
@@ -227,7 +230,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['movie', 'episode', 'anime']
+              arguments:
+                values: ['movie', 'episode', 'anime']
       - name: title
         description: Movie title or episode title
       - name: year
@@ -274,7 +278,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['movie', 'show']
+              arguments:
+                values: ['movie', 'show']
       - name: trakt_id
         description: Trakt movie ID or show ID
         data_tests:
