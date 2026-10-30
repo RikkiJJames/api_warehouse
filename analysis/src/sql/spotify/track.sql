@@ -1,1 +1,0 @@
-SELECT * FROM marts.fct_play_history;

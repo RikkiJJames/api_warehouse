@@ -33,11 +33,10 @@ def _():
     import marimo as mo
     import pandas as pd
     import altair as alt
-    import functools
     from datetime import timedelta, datetime, timezone
     from pathlib import Path
 
-    return Path, alt, datetime, functools, mo, pd, timedelta, timezone
+    return Path, alt, datetime, mo, pd, timedelta, timezone
 
 
 @app.cell
@@ -63,12 +62,9 @@ def _(Path):
 
 
 @app.cell
-def _(DataLoader, SQL_PATH, functools):
+def _(DataLoader, SQL_PATH):
     data_loader = DataLoader()
 
-    # Cached so a loader cell re-running (whenever another tab is opened for
-    # the first time) doesn't re-query tables that are already in memory.
-    @functools.cache
     def load_sql(name):
         return data_loader.load_file(SQL_PATH / f"{name}.sql")
 
@@ -105,7 +101,7 @@ def _(load_sql):
         name.split("/")[-1]: load_sql(name)
         for name in [
             "spotify/enriched_track",
-            "spotify/track",
+            "spotify/daily_plays",
             "trakt/watch_history",
             "hardcover/reading_history",
             "health/daily_activity",
@@ -143,9 +139,10 @@ def _(data, pd):
 
 
 @app.cell
-def _(data):
-    track_df = data['track']
-    return (track_df,)
+def _(data, pd):
+    daily_plays_df = data['daily_plays']
+    daily_plays_df['date'] = pd.to_datetime(daily_plays_df['date'])
+    return (daily_plays_df,)
 
 
 @app.cell
@@ -254,8 +251,8 @@ def _(data, pd):
 
 
 @app.cell
-def _(activity_df, history_df, mo, pd, reading_history_df, track_df):
-    _spotify_since = track_df['played_at'].min()
+def _(activity_df, daily_plays_df, history_df, mo, pd, reading_history_df):
+    _spotify_since = daily_plays_df['date'].min()
     _trakt_since = history_df['watched_at'].min()
     _hardcover_since = reading_history_df['read_finished_at'].min()
     _health_since = activity_df['date'].min()
@@ -270,7 +267,7 @@ def _(activity_df, history_df, mo, pd, reading_history_df, track_df):
     overview_stats = mo.hstack(
         [
             mo.stat(
-                value=f"{len(track_df):,}",
+                value=f"{int(daily_plays_df['plays'].sum()):,}",
                 label="Spotify plays logged",
                 caption=_since_caption(_spotify_since, "played"),
                 bordered=True,
@@ -472,10 +469,11 @@ def _(mo, recent_books_cards, recent_movies_cards, top_artist_card):
 
 
 @app.cell
-def _(alt, history_df, mo, pd, reading_history_df, track_df):
+def _(alt, daily_plays_df, history_df, mo, pd, reading_history_df):
     _spotify_daily = (
-        track_df.assign(date=pd.to_datetime(track_df['played_at']).dt.date.astype(str))
-        .groupby('date').size().reset_index(name='count').assign(source='Spotify')
+        daily_plays_df.assign(date=daily_plays_df['date'].dt.date.astype(str))
+        .rename(columns={'plays': 'count'})[['date', 'count']]
+        .assign(source='Spotify')
     )
     _trakt_daily = (
         history_df.dropna(subset=['watched_at'])
@@ -849,26 +847,29 @@ def _(timedelta):
 
 
 @app.cell
-def _(mo, track_df):
-    number_of_days_listened = (track_df['played_at'].max() - track_df['played_at'].min()).days
+def _(daily_plays_df, mo):
+    number_of_days_listened = (daily_plays_df['date'].max() - daily_plays_df['date'].min()).days
     number_of_days = mo.ui.slider(0, number_of_days_listened, value=0, label="Number of Days")
     return (number_of_days,)
 
 
 @app.cell
 def _(
+    daily_plays_df,
     datetime,
     get_listening_time,
     number_of_days,
     timedelta,
     timezone,
-    track_df,
 ):
-    current_date = datetime.now(timezone.utc)
+    current_date = datetime.now(timezone.utc).date()
 
-    listened_this_week = track_df.iloc[track_df['played_at'] >= (current_date - timedelta(days=number_of_days.value))]
+    # Whole days, today included — fct_daily_plays is bucketed by UTC date.
+    listened_this_week = daily_plays_df[
+        daily_plays_df['date'].dt.date > current_date - timedelta(days=number_of_days.value)
+    ]
 
-    weekly_listening_time = get_listening_time(listened_this_week['track_duration_ms'])
+    weekly_listening_time = get_listening_time(listened_this_week['duration_ms'])
     return (weekly_listening_time,)
 
 

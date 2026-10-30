@@ -130,6 +130,19 @@ models:
       - name: track_duration_ms
         description: Duration of this play in milliseconds
 
+  - name: fct_daily_plays
+    description: Plays and listening time per calendar day (UTC) — daily rollup of fct_play_history
+    columns:
+      - name: date
+        description: Calendar day of the plays
+        data_tests:
+          - unique
+          - not_null
+      - name: plays
+        description: Number of plays that day
+      - name: duration_ms
+        description: Total listening time that day in milliseconds
+
   - name: fct_track_stats
     description: Aggregated play statistics per track — join to dim_tracks on spotify_track_id
     columns:
