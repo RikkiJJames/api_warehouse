@@ -1,10 +1,11 @@
+import sys
 from datetime import date, datetime, timedelta, timezone
 
 from src.api.execution_client import ExecutionClient
 from src.api.execution_engine import ExecutionEngine
 from src.pipelines.api_pipeline import ApiPipeline
 from src.pipelines.google_health.authorization_flow import GoogleHealthAuthFlow
-from src.pipelines.google_health.token_manager import GoogleHealthTokenManager
+from src.pipelines.google_health.token_manager import GoogleHealthAuthError, GoogleHealthTokenManager
 
 
 class GoogleHealthPipeline(ApiPipeline):
@@ -38,19 +39,23 @@ class GoogleHealthPipeline(ApiPipeline):
         self.meta.config["refresh_token"] = token
         self.registry.update_config(self.meta.api_id, "refresh_token", token)
 
+    def _run_auth_flow(self):
+        # Can't run interactively inside Cloud Run — the refresh_token
+        # must already be populated (via a one-off local run of this flow)
+        # before this pipeline is ever deployed.
+        config = self.meta.config
+        flow = GoogleHealthAuthFlow(
+            client_id=config["client_id"],
+            client_secret=config["client_secret"],
+        )
+        tokens = flow.run()
+        self._persist_refresh_token(tokens["refresh_token"])
+
     def _ensure_auth(self):
         config = self.meta.config
 
         if not config.get("refresh_token"):
-            # Can't run interactively inside Cloud Run — the refresh_token
-            # secret must already be populated (via a one-off local run of
-            # this flow) before this pipeline is ever deployed.
-            flow = GoogleHealthAuthFlow(
-                client_id=config["client_id"],
-                client_secret=config["client_secret"],
-            )
-            tokens = flow.run()
-            self._persist_refresh_token(tokens["refresh_token"])
+            self._run_auth_flow()
 
         self.token_manager = GoogleHealthTokenManager(
             client_id=config["client_id"],
@@ -62,7 +67,24 @@ class GoogleHealthPipeline(ApiPipeline):
     def get_api_key(self) -> str:
         if self.token_manager is None:
             self._ensure_auth()
-        return f"Bearer {self.token_manager.get_access_token()}"
+        try:
+            access_token = self.token_manager.get_access_token()
+        except GoogleHealthAuthError as e:
+            # invalid_grant means the stored refresh token is dead (revoked,
+            # or expired — Google expires them after 7 days while the OAuth
+            # app is in "Testing"). Re-consent when run from a terminal;
+            # anywhere else, fail with instructions instead of a bare 400.
+            if "invalid_grant" not in str(e):
+                raise
+            if not sys.stdin.isatty():
+                raise GoogleHealthAuthError(
+                    "Google Health refresh token is no longer valid (invalid_grant). "
+                    "Run the ingest locally from a terminal to re-authorize."
+                ) from e
+            self._run_auth_flow()
+            self._ensure_auth()
+            access_token = self.token_manager.get_access_token()
+        return f"Bearer {access_token}"
 
     @staticmethod
     def _date_body(start, end) -> dict:
