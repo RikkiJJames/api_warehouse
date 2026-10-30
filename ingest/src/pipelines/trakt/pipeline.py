@@ -1,10 +1,11 @@
+import sys
 from datetime import timezone
 
 from src.api.execution_client import ExecutionClient
 from src.api.execution_engine import ExecutionEngine
 from src.pipelines.api_pipeline import ApiPipeline
 from src.pipelines.trakt.authorization_flow import TraktAuthFlow
-from src.pipelines.trakt.token_manager import TraktTokenManager
+from src.pipelines.trakt.token_manager import TraktAuthError, TraktTokenManager
 
 
 class TraktPipeline(ApiPipeline):
@@ -23,25 +24,27 @@ class TraktPipeline(ApiPipeline):
         self.meta.config["refresh_token"] = token
         self.registry.update_config(self.meta.api_id, "refresh_token", token)
 
-    def _ensure_auth(self):
-        config = self.meta.config
-
-        if config.get("refresh_token"):
-            self.token_manager = TraktTokenManager(
-                client_id=config["client_id"],
-                    refresh_token=config["refresh_token"],
-                redirect_url=config["redirect_url"],
-                on_refresh=self._persist_refresh_token,
+    def _run_auth_flow(self):
+        # The flow waits on a localhost callback for a browser login, which
+        # would hang forever inside Cloud Run — fail fast there instead.
+        if not sys.stdin.isatty():
+            raise TraktAuthError(
+                "Trakt has no valid refresh token. "
+                "Run the ingest locally from a terminal to authorize."
             )
-            return
-
+        config = self.meta.config
         flow = TraktAuthFlow(
             client_id=config["client_id"],
             redirect_url=config["redirect_url"],
         )
-
         tokens = flow.run()
         self._persist_refresh_token(tokens["refresh_token"])
+
+    def _ensure_auth(self):
+        config = self.meta.config
+
+        if not config.get("refresh_token"):
+            self._run_auth_flow()
 
         self.token_manager = TraktTokenManager(
             client_id=config["client_id"],
@@ -53,7 +56,18 @@ class TraktPipeline(ApiPipeline):
     def get_api_key(self) -> str:
         if self.token_manager is None:
             self._ensure_auth()
-        return f"Bearer {self.token_manager.get_access_token()}"
+        try:
+            access_token = self.token_manager.get_access_token()
+        except TraktAuthError as e:
+            # invalid_grant means the stored refresh token is dead — revoked,
+            # or minted by the old client_secret flow, which a PKCE refresh
+            # (no secret) can't redeem. Same recovery as Google Health.
+            if "invalid_grant" not in str(e):
+                raise
+            self._run_auth_flow()
+            self._ensure_auth()
+            access_token = self.token_manager.get_access_token()
+        return f"Bearer {access_token}"
 
     def get_extra_headers(self) -> dict:
         return {
