@@ -33,10 +33,11 @@ def _():
     import marimo as mo
     import pandas as pd
     import altair as alt
+    import functools
     from datetime import timedelta, datetime, timezone
     from pathlib import Path
 
-    return Path, alt, datetime, mo, pd, timedelta, timezone
+    return Path, alt, datetime, functools, mo, pd, timedelta, timezone
 
 
 @app.cell
@@ -62,10 +63,75 @@ def _(Path):
 
 
 @app.cell
-def _(DataLoader, SQL_PATH):
+def _(DataLoader, SQL_PATH, functools):
     data_loader = DataLoader()
-    data = data_loader.load_data(file_dir=SQL_PATH)
+
+    # Cached so a loader cell re-running (whenever another tab is opened for
+    # the first time) doesn't re-query tables that are already in memory.
+    @functools.cache
+    def load_sql(name):
+        return data_loader.load_file(SQL_PATH / f"{name}.sql")
+
+    return (load_sql,)
+
+
+@app.cell
+def _(mo):
+    get_main_tab, set_main_tab = mo.state("Overview")
+    get_opened_tabs, set_opened_tabs = mo.state({"Overview"})
+    # The Trakt and Hardcover views are handed to the main tabs through state
+    # rather than referenced directly — their data cells mo.stop() until the
+    # tab is first opened, and a direct reference would stop the main tabs
+    # cell (and so the whole page) along with them.
+    get_trakt_view, set_trakt_view = mo.state(None)
+    get_hardcover_view, set_hardcover_view = mo.state(None)
+    return (
+        get_hardcover_view,
+        get_main_tab,
+        get_opened_tabs,
+        get_trakt_view,
+        set_hardcover_view,
+        set_main_tab,
+        set_opened_tabs,
+        set_trakt_view,
+    )
+
+
+@app.cell
+def _(load_sql):
+    # Only what the Overview tab needs is loaded up front — the Trakt and
+    # Hardcover detail marts below wait until their tab is first opened.
+    data = {
+        name.split("/")[-1]: load_sql(name)
+        for name in [
+            "spotify/enriched_track",
+            "spotify/track",
+            "trakt/watch_history",
+            "hardcover/reading_history",
+            "health/daily_activity",
+        ]
+    }
     return (data,)
+
+
+@app.cell
+def _(get_opened_tabs, load_sql, mo):
+    mo.stop("Trakt" not in get_opened_tabs())
+    trakt_data = {
+        name: load_sql(f"trakt/{name}")
+        for name in ["dim_movies", "fct_movie_stats", "dim_shows", "fct_show_stats", "watchlist", "fct_genre_stats"]
+    }
+    return (trakt_data,)
+
+
+@app.cell
+def _(get_opened_tabs, load_sql, mo):
+    mo.stop("Hardcover" not in get_opened_tabs())
+    hardcover_data = {
+        name: load_sql(f"hardcover/{name}")
+        for name in ["reading_list", "fct_reading_stats"]
+    }
+    return (hardcover_data,)
 
 
 @app.cell
@@ -89,30 +155,30 @@ def _(data):
 
 
 @app.cell
-def _(data):
-    dim_movies_df = data['dim_movies']
-    fct_movie_stats_df =data['fct_movie_stats']
+def _(trakt_data):
+    dim_movies_df = trakt_data['dim_movies']
+    fct_movie_stats_df = trakt_data['fct_movie_stats']
     movies_df = dim_movies_df.merge(fct_movie_stats_df, on="trakt_movie_id", how="left")
     return (movies_df,)
 
 
 @app.cell
-def _(data):
-    dim_shows_df = data['dim_shows']
-    fct_show_stats_df = data['fct_show_stats']
+def _(trakt_data):
+    dim_shows_df = trakt_data['dim_shows']
+    fct_show_stats_df = trakt_data['fct_show_stats']
     shows_df = dim_shows_df.merge(fct_show_stats_df, on="trakt_show_id", how="left")
     return (shows_df,)
 
 
 @app.cell
-def _(data):
-    watchlist_df = data['watchlist']
+def _(trakt_data):
+    watchlist_df = trakt_data['watchlist']
     return (watchlist_df,)
 
 
 @app.cell
-def _(data):
-    genre_stats_df = data['fct_genre_stats']
+def _(trakt_data):
+    genre_stats_df = trakt_data['fct_genre_stats']
     return (genre_stats_df,)
 
 
@@ -138,8 +204,8 @@ def _(data, pd):
 
 
 @app.cell
-def _(data, pd):
-    reading_list_df = data['reading_list']
+def _(hardcover_data, pd):
+    reading_list_df = hardcover_data['reading_list']
     if reading_list_df.empty:
         reading_list_df = pd.DataFrame({
             'user_book_id': pd.Series(dtype='int64'),
@@ -154,8 +220,8 @@ def _(data, pd):
 
 
 @app.cell
-def _(data, pd):
-    reading_stats_df = data['fct_reading_stats']
+def _(hardcover_data, pd):
+    reading_stats_df = hardcover_data['fct_reading_stats']
     if reading_stats_df.empty:
         reading_stats_df = pd.DataFrame({
             'year': pd.Series(dtype='datetime64[ns]'),
@@ -1064,13 +1130,14 @@ def _(
     movie_sort,
     movie_top_n,
     rating_hist,
+    set_trakt_view,
     show_sort,
     show_top_n,
     top_movies_df,
     top_shows_df,
     watchlist_df,
 ):
-    trakt_view = mo.ui.tabs({
+    set_trakt_view(mo.ui.tabs({
         "Watch History": mo.vstack([
             mo.md("## Activity"),
             mo.md("Number of movies and episodes watched per day — a quick way to spot binge sessions."),
@@ -1106,8 +1173,8 @@ def _(
             genre_chart,
             genre_stats_df,
         ]),
-    })
-    return (trakt_view,)
+    }))
+    return
 
 
 @app.cell
@@ -1187,9 +1254,10 @@ def _(
     reading_list_status_filter,
     reading_stats_chart,
     reading_stats_df,
+    set_hardcover_view,
     top_books_df,
 ):
-    hardcover_view = mo.ui.tabs({
+    set_hardcover_view(mo.ui.tabs({
         "Read Books": mo.vstack([
             mo.md("## Top Books"),
             mo.md("Every finished book, sortable by when you finished it, your rating, or page count."),
@@ -1211,21 +1279,35 @@ def _(
             reading_stats_chart,
             reading_stats_df,
         ]),
-    })
-    return (hardcover_view,)
+    }))
+    return
 
 
 @app.cell
 def _(
     combined_activity_chart,
     fitness_view,
-    hardcover_view,
+    get_hardcover_view,
+    get_main_tab,
+    get_opened_tabs,
+    get_trakt_view,
     highlights_section,
     mo,
     overview_summary,
+    set_main_tab,
+    set_opened_tabs,
     spotify_view,
-    trakt_view,
 ):
+    def _on_tab_change(tab):
+        set_main_tab(tab)
+        # Only set when a tab is opened for the first time — every set re-runs
+        # the Trakt/Hardcover loader cells and everything downstream of them.
+        if tab not in get_opened_tabs():
+            set_opened_tabs(get_opened_tabs() | {tab})
+
+    def _or_loading(view, source):
+        return view if view is not None else mo.md(f"Loading {source} data…")
+
     mo.ui.tabs({
         "Overview": mo.vstack([
             overview_summary,
@@ -1245,10 +1327,10 @@ def _(
             ),
         ]),
         "Spotify": spotify_view,
-        "Trakt": trakt_view,
-        "Hardcover": hardcover_view,
+        "Trakt": _or_loading(get_trakt_view(), "Trakt"),
+        "Hardcover": _or_loading(get_hardcover_view(), "Hardcover"),
         "Fitness": fitness_view,
-    })
+    }, value=get_main_tab(), on_change=_on_tab_change)
     return
 
 

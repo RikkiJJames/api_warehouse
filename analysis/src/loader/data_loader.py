@@ -36,3 +36,13 @@ class DataLoader:
             data[sql_file_path.stem] = pd.DataFrame(result)
 
         return data
+
+    def load_file(self, sql_file_path: Path) -> pd.DataFrame:
+        """
+        Runs a single SQL file and returns the result as a pandas DataFrame.
+        """
+        if self.db.engine is None:
+            self.db.connect()
+
+        query = self.sql_loader.read_sql_file(sql_file_path)
+        return pd.DataFrame(self.db.execute_query(query))
