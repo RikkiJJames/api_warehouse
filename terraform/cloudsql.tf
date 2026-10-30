@@ -24,6 +24,13 @@ resource "google_sql_database_instance" "main" {
     backup_configuration {
       enabled                        = true
       point_in_time_recovery_enabled = false
+
+      # Default is 7 daily backups — 2 keeps a couple of days of rollback
+      # for a fraction of the backup storage.
+      backup_retention_settings {
+        retained_backups = 2
+        retention_unit   = "COUNT"
+      }
     }
 
     ip_configuration {
